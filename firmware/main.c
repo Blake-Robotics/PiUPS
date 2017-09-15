@@ -1,15 +1,14 @@
-/* tinyBuck firmware
+/* PiUPS firmware
  *
- * Firmware to drive the tinyBuck led patterns. Provides an
- * i2c interface and basic PWM output. Parameters are stored
- * in the EEPROM.
+ * Firmware to drive the PiUPS, a microcontoller which can
+ * manage the power supply to a raspberry pi, and switch
+ * between battery and aux, while providing voltage monitoring
+ * capability.
  *
- * Chip Pinout:
- *   
- *  PA0 - PWM0
- *  PA1 - PWM1
- *  PA2 - PWM2
- *
+ * It is the aim that in the event the battery drops below 
+ * the low voltage cutout, the battery will be disabled
+ * and the microcontroller put into a very low power
+ * sleep mode, until the voltage is acceptable again.
  *
  */
 
@@ -91,6 +90,8 @@ int main (void)
     sei();
     
     // use I2C:
+    // Note: this function uses callbacks to run the rest of the 
+    // program.
     usi_twi_slave(0x13, 0, &i2c_recv_callback, &i2c_idle_callback);
 };
 
@@ -131,7 +132,7 @@ void ADCStateHandler(void)
     case ADCInitWait:
       if ( CurrentTime() > ADCWaitTime)
       {
-        ADCSRA |= (1 << ADSC);
+        ADCSRA |= (1 << ADSC); // Start conversion
         CurrentADCState = ADCVccWait;
       }
       break;
@@ -348,8 +349,8 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
         break;
       
       case PIUPS_VBATT_LOWEN:
-        update_eeprom_byte (EEPROM_VBATT_LOWDIS+1, input_buffer[1]);
-        update_eeprom_byte (EEPROM_VBATT_LOWDIS, input_buffer[2]);
+        update_eeprom_byte (EEPROM_VBATT_LOWEN+1, input_buffer[1]);
+        update_eeprom_byte (EEPROM_VBATT_LOWEN, input_buffer[2]);
         break;
      
     }
