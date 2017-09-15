@@ -1,0 +1,2 @@
+Note, the i2c-dev device must be loaded.
+Note that the user must also have access to the i2c file.
