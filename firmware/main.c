@@ -32,7 +32,7 @@
 #include "eeprom.h"
 
 /*****************************************************************************
- * Global Variables
+ * Global Variables & Functions
  *****************************************************************************/
 
 // I2C polling - check for new data recieved
@@ -51,13 +51,15 @@ uint32_t CurrentTime(void);
 
 // ADC Handling:
 void ADCStateHandler(void);
-volatile ADCState CurrentADCState;
+volatile PiUPSADCState CurrentADCState;
 uint32_t ADCWaitTime;
 
-// ADC parameters:
+// ADC converted voltages:
 uint16_t voltage_vcc;
 uint16_t voltage_bat;
 uint16_t voltage_rail;
+uint16_t voltage_aux1;
+uint16_t voltage_aux2;
 
 // Rail divisions..
 uint16_t div_bat = 4880;
@@ -149,7 +151,11 @@ void ADCStateHandler(void)
     case ADCVbatWait:
       if ( !(ADCSRA & (1 << ADSC) ) )
       {
-        voltage_bat = ((uint32_t)voltage_vcc*ADC/1024)*div_bat/1000;
+        // Convert the ADC value to a voltage in mV, using
+        // the stored value for the resistor divider.
+        voltage_bat = ((uint32_t)voltage_vcc*ADC/1024)*
+                       read_eeprom_word(EEPROM_VBATT_CONV)/1000;
+        
         ADMUX = (1 << MUX1); // Set the mux to ADC2
         ADCSRA |= (1 << ADSC);
         CurrentADCState = ADCVrailWait;
@@ -160,7 +166,34 @@ void ADCStateHandler(void)
     case ADCVrailWait:
       if ( !(ADCSRA & (1 << ADSC) ) )
       {
-        voltage_rail = ((uint32_t)voltage_vcc*ADC/1024)*div_rail/1000;
+        voltage_rail = ((uint32_t)voltage_vcc*ADC/1024)*
+                        read_eeprom_word(EEPROM_VRAIL_CONV)/1000;
+        
+        ADMUX = (1 << MUX1) | (1 << MUX0); // Set the mux to ADC3
+        ADCSRA |= (1 << ADSC);
+        CurrentADCState = ADCVauxlWait;
+      }
+      break;
+      
+    // Wait for conversion, then store Vaux1
+    case ADCVauxlWait:
+      if ( !(ADCSRA & (1 << ADSC) ) )
+      {
+        voltage_aux1 = ((uint32_t)voltage_vcc*ADC/1024)*
+                        read_eeprom_word(EEPROM_VAUX1_CONV)/1000;
+        
+        ADMUX = (1 << MUX2); // Set the mux to ADC4
+        ADCSRA |= (1 << ADSC);
+        CurrentADCState = ADCVaux2Wait;
+      }
+      break;
+      
+    // Wait for conversion, then store Vaux2
+    case ADCVaux2Wait:
+      if ( !(ADCSRA & (1 << ADSC) ) )
+      {
+        voltage_aux2 = ((uint32_t)voltage_vcc*ADC/1024)*
+                        read_eeprom_word(EEPROM_VAUX2_CONV)/1000;
         CurrentADCState = ADCConvComplete;
       }
       break;
@@ -239,6 +272,16 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
         output_buffer[0] = (voltage_rail >> 8);
         output_buffer[1] = (voltage_rail);
         break;
+        
+      case PIUPS_VAUX1:
+        output_buffer[0] = (voltage_aux1 >> 8);
+        output_buffer[1] = (voltage_aux1);
+        break;
+        
+      case PIUPS_VAUX2:
+        output_buffer[0] = (voltage_aux2 >> 8);
+        output_buffer[1] = (voltage_aux2);
+        break;
       
       // Conversion Factors:
       case PIUPS_VBATT_CONV:
@@ -248,13 +291,21 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
         break;
         
       case PIUPS_VRAIL_CONV:
-        output_buffer[0] = read_eeprom_byte(EEPROM_VRAIL_CONV + 1);
-        output_buffer[1] = read_eeprom_byte(EEPROM_VRAIL_CONV);
+        temp = read_eeprom_word (EEPROM_VRAIL_CONV);
+        output_buffer[0] = (temp >> 8);
+        output_buffer[1] = (temp);
         break;
         
       case PIUPS_VAUX1_CONV:
-        output_buffer[0] = read_eeprom_byte(EEPROM_VAUX1_CONV + 1);
-        output_buffer[1] = read_eeprom_byte(EEPROM_VAUX1_CONV);
+        temp = read_eeprom_word (PIUPS_VAUX1_CONV);
+        output_buffer[0] = (temp >> 8);
+        output_buffer[1] = (temp);
+        break;
+        
+      case PIUPS_VAUX2_CONV:
+        temp = read_eeprom_word (PIUPS_VAUX2_CONV);
+        output_buffer[0] = (temp >> 8);
+        output_buffer[1] = (temp);
         break;
     }
     
@@ -284,6 +335,21 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
       case PIUPS_VAUX1_CONV:
         update_eeprom_byte (EEPROM_VAUX1_CONV+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_VAUX1_CONV, input_buffer[2]);
+        break;
+        
+      case PIUPS_VAUX2_CONV:
+        update_eeprom_byte (EEPROM_VAUX2_CONV+1, input_buffer[1]);
+        update_eeprom_byte (EEPROM_VAUX2_CONV, input_buffer[2]);
+        break;
+        
+      case PIUPS_VBATT_LOWDIS:
+        update_eeprom_byte (EEPROM_VBATT_LOWDIS+1, input_buffer[1]);
+        update_eeprom_byte (EEPROM_VBATT_LOWDIS, input_buffer[2]);
+        break;
+      
+      case PIUPS_VBATT_LOWEN:
+        update_eeprom_byte (EEPROM_VBATT_LOWDIS+1, input_buffer[1]);
+        update_eeprom_byte (EEPROM_VBATT_LOWDIS, input_buffer[2]);
         break;
      
     }

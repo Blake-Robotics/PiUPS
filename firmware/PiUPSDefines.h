@@ -18,7 +18,7 @@ typedef enum PiUPSPower
 } PiUPSPower;
 
 // ADC State Machine
-typedef enum ADCState
+typedef enum PiUPSADCState
 {
     ADCIdle = 0x0,
     ADCInit = 0x1,
@@ -27,10 +27,11 @@ typedef enum ADCState
     ADCVbatWait = 0x4,
     ADCVrailWait = 0x5,
     ADCVauxlWait = 0x6,
+    ADCVaux2Wait = 0x7,
     ADCConvComplete = 0xF0,
     ADCDisable = 0xFC,
     ADCERR = 0xFF
-} ADCState;
+} PiUPSADCState;
 
 
 // Write commands (opcodes)
@@ -50,6 +51,7 @@ typedef enum ADCState
 #define PIUPS_VBATT_CONV 0x50
 #define PIUPS_VRAIL_CONV 0x52
 #define PIUPS_VAUX1_CONV 0x54
+#define PIUPS_VAUX2_CONV 0x56
 
 #define PIUPS_VBATT_LOWDIS 0x60
 #define PIUPS_VBATT_LOWEN 0x62
