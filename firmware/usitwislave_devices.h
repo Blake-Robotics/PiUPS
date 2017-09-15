@@ -1,4 +1,11 @@
-/*	See LICENSE for Copyright etc. */
+/*
+Copyright: Erik Slagter <erik@slagter.name>
+License: GPLv2
+
+Derived from works by:
+	Atmel (Application note 312, licensing unknown, probably public domain)
+	Donald R. Blake (licensing unknown, probably public domain)
+*/
 
 #if		defined(__AVR_ATtiny2313__)
 #	define DDR_USI				DDRB
