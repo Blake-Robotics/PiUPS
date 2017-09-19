@@ -5,8 +5,9 @@
 
 typedef enum PiUPSBattery
 {
-    PiUPSBatteryLow = 0x1,
-    PiUPSBatteryChg = 0x2,
+    PiUPSBatteryLow  = 0x1,
+    PiUPSBatteryGood = 0x2,
+    PiUPSBatteryChg  = 0x4,
 } PiUPSBattery;
 
 
@@ -35,10 +36,17 @@ typedef enum PiUPSADCState
 
 
 // Write commands (opcodes)
-#define PIUPS_RESET 0x0
-#define PIUPS_UPDATE 0x1
-#define PIUPS_SAVE 0x2
-#define PIUPS_SETI2C 0x13
+//#define PIUPS_RESET 0x0
+//#define PIUPS_UPDATE 0x1
+//#define PIUPS_SAVE 0x2
+//#define PIUPS_SETI2C 0x13
+
+//Status and control:
+//  [3:0] - PiUPSBattery: Battery Status
+//  [7:4] - PiUPSPower: Rail power source
+//  [11:8] - PiUPSPower: Power supply
+#define PIUPS_STATUS 0x10
+#define PIUPS_ADCSTATE 0x18
 
 // Voltages to read.
 #define PIUPS_VCC 0x20
@@ -53,10 +61,17 @@ typedef enum PiUPSADCState
 #define PIUPS_VAUX1_CONV 0x54
 #define PIUPS_VAUX2_CONV 0x56
 
+// Voltages for constraining safe
+// battery voltages:
 #define PIUPS_VBATT_LOWDIS 0x60
 #define PIUPS_VBATT_LOWEN 0x62
 
+// Range for operating rail voltages
+#define PIUPS_RAIL_LOWSW 0x64
+#define PIUPS_RAIL_HIGHSW 0x66
+#define PIUPS_RAIL_COMPEN 0x68
 
+//TODO: Add charging support using DC_DC converter..
 
 
 

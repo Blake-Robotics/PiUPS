@@ -39,10 +39,6 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
 				uint8_t *output_buffer_length, uint8_t *output_buffer);				
 void i2c_idle_callback(void);
 
-// Enable/disable the low voltage sensing on the main power rail.
-void ANACOMP_Enable(void);
-void ANACOMP_Disable(void);
-
 // Timer 1 - Used to keep track of global time.
 void EnableTimer1(void);
 volatile uint16_t extended_time;
@@ -53,6 +49,10 @@ void ADCStateHandler(void);
 volatile PiUPSADCState CurrentADCState;
 uint32_t ADCWaitTime;
 
+// Enable/disable the low voltage sensing on the main power rail.
+void ANACOMP_Enable(void);
+void ANACOMP_Disable(void);
+
 // ADC converted voltages:
 uint16_t voltage_vcc;
 uint16_t voltage_bat;
@@ -61,11 +61,14 @@ uint16_t voltage_aux1;
 uint16_t voltage_aux2;
 
 // Rail divisions..
-uint16_t div_bat = 4880;
-uint16_t div_rail = 4880;
+//uint16_t div_bat = 4880;
+//uint16_t div_rail = 4880;
 
+// Power status / control:
 volatile PiUPSBattery BatteryStatus = 0x0;
-volatile PiUPSPower PowerStatus = 0x0;
+volatile PiUPSPower PowerSource = 0x0;
+volatile PiUPSPower RailSource = 0x0;
+void UpdateStatus(void);
 bool PowerSave = false;
 
 
@@ -200,6 +203,7 @@ void ADCStateHandler(void)
       break;
       
     case ADCConvComplete:
+      UpdateStatus();
       CurrentADCState = ADCInit;
       break;
       
@@ -208,6 +212,75 @@ void ADCStateHandler(void)
       break;
   }
 }
+
+
+/*****************************************************************************
+ * Power state and system management:
+ *****************************************************************************/
+void UpdateStatus(void)
+{
+  
+  // Check the battery level, with hysterisis:
+  if (BatteryStatus & PiUPSBatteryGood)
+  {
+    if (voltage_bat < read_eeprom_word (EEPROM_VBATT_LOWDIS))
+    {
+      BatteryStatus &= !PiUPSBatteryGood;
+      BatteryStatus |= PiUPSBatteryLow;
+    }
+  }
+  else
+  {
+    if (voltage_bat < read_eeprom_word (EEPROM_VBATT_LOWEN))
+    {
+      BatteryStatus |= PiUPSBatteryGood;
+      BatteryStatus &= !PiUPSBatteryLow;
+    }
+  
+  }
+  
+  
+  // Determine the rail source voltage:
+  if (voltage_aux2 > voltage_aux1)
+  {
+    // Check battery output is on and powering rail:
+    if ((PORTB & PB0) && (voltage_aux2 < voltage_rail))
+    {
+      RailSource = PiUPSPowerBatt;
+    }
+    else
+    {
+      RailSource = PiUPSPowerAUX2;
+    }
+  }
+  else
+  {
+    // Check battery output is on and powering rail:
+    if ((PORTB & PB0) && (voltage_aux2 < voltage_rail))
+    {
+      RailSource = PiUPSPowerBatt;
+    }
+    else
+    {
+      RailSource = PiUPSPowerAUX1;
+    }
+  
+  }
+  
+  // If voltage rail is above the first power regulator
+  // then the device is being powered from the rail, and
+  // is powered from the highest supply:
+  if ( voltage_rail > 5600 )
+  {
+    PowerSource = RailSource;
+  }
+  else
+  {
+    RailSource = PiUPSPowerBatt;
+  }
+
+}
+
 
 /*****************************************************************************
  * Timer 1: Global Timekeeping 
@@ -256,59 +329,76 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
         return;
         
       // Current Status:
-      
+      case PIUPS_STATUS:
+        temp = BatteryStatus | 
+               (PowerSource << 4) |
+               (RailSource  << 8);
+        break;
+               
+      case PIUPS_ADCSTATE:
+        temp = CurrentADCState;
+        break;
         
       // Voltage Reading:
       case PIUPS_VCC:
-        output_buffer[0] = (voltage_vcc >> 8);
-        output_buffer[1] = (voltage_vcc);
+        temp = voltage_vcc;
         break;
         
       case PIUPS_VBATT:
-        output_buffer[0] = (voltage_bat >> 8);
-        output_buffer[1] = (voltage_bat);
+        temp = voltage_bat;
         break;
         
       case PIUPS_VRAIL:
-        output_buffer[0] = (voltage_rail >> 8);
-        output_buffer[1] = (voltage_rail);
+        temp = voltage_rail;
         break;
         
       case PIUPS_VAUX1:
-        output_buffer[0] = (voltage_aux1 >> 8);
-        output_buffer[1] = (voltage_aux1);
+        temp = voltage_aux1;
         break;
         
       case PIUPS_VAUX2:
-        output_buffer[0] = (voltage_aux2 >> 8);
-        output_buffer[1] = (voltage_aux2);
+        temp = voltage_aux2;
         break;
       
       // Conversion Factors:
       case PIUPS_VBATT_CONV:
         temp = read_eeprom_word (EEPROM_VBATT_CONV);
-        output_buffer[0] = (temp >> 8);
-        output_buffer[1] = (temp);
         break;
         
       case PIUPS_VRAIL_CONV:
         temp = read_eeprom_word (EEPROM_VRAIL_CONV);
-        output_buffer[0] = (temp >> 8);
-        output_buffer[1] = (temp);
         break;
         
       case PIUPS_VAUX1_CONV:
         temp = read_eeprom_word (PIUPS_VAUX1_CONV);
-        output_buffer[0] = (temp >> 8);
-        output_buffer[1] = (temp);
         break;
         
       case PIUPS_VAUX2_CONV:
         temp = read_eeprom_word (PIUPS_VAUX2_CONV);
-        output_buffer[0] = (temp >> 8);
-        output_buffer[1] = (temp);
         break;
+        
+      case PIUPS_VBATT_LOWDIS:
+        temp = read_eeprom_word (EEPROM_VBATT_LOWDIS);
+        break;
+        
+      case PIUPS_VBATT_LOWEN:
+        temp = read_eeprom_word (EEPROM_VBATT_LOWEN);
+        break;
+        
+      case PIUPS_RAIL_LOWSW:
+        temp = read_eeprom_word (EEPROM_RAIL_LOWSW);
+        break;
+        
+      case PIUPS_RAIL_HIGHSW:
+        temp = read_eeprom_word (EEPROM_RAIL_HIGHSW);
+        break;
+        
+      case PIUPS_RAIL_COMPEN:
+        temp = read_eeprom_word (EEPROM_RAIL_COMPEN);
     }
+    
+    output_buffer[0] = (temp >> 8);
+    output_buffer[1] = (temp);
     
     *output_buffer_length = 2;
 
@@ -351,6 +441,21 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
       case PIUPS_VBATT_LOWEN:
         update_eeprom_byte (EEPROM_VBATT_LOWEN+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_VBATT_LOWEN, input_buffer[2]);
+        break;
+        
+      case PIUPS_RAIL_LOWSW:
+        update_eeprom_byte (EEPROM_RAIL_LOWSW+1, input_buffer[1]);
+        update_eeprom_byte (EEPROM_RAIL_LOWSW, input_buffer[2]);
+        break;
+        
+      case PIUPS_RAIL_HIGHSW:
+        update_eeprom_byte (EEPROM_RAIL_HIGHSW+1, input_buffer[1]);
+        update_eeprom_byte (EEPROM_RAIL_HIGHSW, input_buffer[2]);
+        break;
+        
+      case PIUPS_RAIL_COMPEN:
+        update_eeprom_byte (EEPROM_RAIL_COMPEN+1, input_buffer[1]);
+        update_eeprom_byte (EEPROM_RAIL_COMPEN, input_buffer[2]);
         break;
      
     }
@@ -400,7 +505,7 @@ ISR(ANA_COMP_vect)
     if ( (ACSR & (1<<ACO)) && ((BatteryStatus & PiUPSBatteryLow)==0x0) )
     {
         PORTB |= (1 << PB0); // Enable battery.
-        PowerStatus = PiUPSPowerBatt;
+        RailSource = PiUPSPowerBatt;
     }
 }
 

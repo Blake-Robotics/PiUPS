@@ -28,8 +28,9 @@
 // Battery low safety points:
 #define EEPROM_VBATT_LOWDIS 0x20
 #define EEPROM_VBATT_LOWEN 0x22
-
-
+#define EEPROM_RAIL_LOWSW 0x24
+#define EEPROM_RAIL_HIGHSW 0x26
+#define EEPROM_RAIL_COMPEN 0x28
 
 
 #endif
