@@ -28,6 +28,7 @@ int open_i2c_dev(int *file_i2c, char* filename, uint8_t i2c_addr)
     printf("Failed to acquire bus access and/or talk to slave.\n");
     return -2;
   }
+  return 0;
 }
 
 

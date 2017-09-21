@@ -1,6 +1,6 @@
 C=gcc
 CFLAGS = -std=gnu99 -Wall
-OBJ = i2ctest.o 
+OBJ = i2ctest.o i2ctools.o
 
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
