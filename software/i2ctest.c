@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "i2ctools.h"
+#include "PiUPSDefines.h"
 
 int main (void)
 {
@@ -23,7 +24,7 @@ int main (void)
     return -1;
   }
   	
-  if (read_i2c_reg(file_i2c, 0x20, &vcc) == 0)
+  if (read_i2c_reg(file_i2c, PIUPS_VCC, &vcc) == 0)
   {
     printf("Read VCC as %d mV. \n", vcc);
   }
@@ -32,7 +33,7 @@ int main (void)
     printf("Failed to read VCC \n");
   }
 	
-  if (read_i2c_reg(file_i2c, 0x22, &vbat) == 0)
+  if (read_i2c_reg(file_i2c, PIUPS_VBATT, &vbat) == 0)
   {
     printf("Read VCC as %d mV. \n", vbat);
   }
