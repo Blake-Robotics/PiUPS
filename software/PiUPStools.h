@@ -12,12 +12,19 @@
 
 /// Print the current status of the ups system:
 /* Function to print the current status of the ups system to screen
- * @param file I2C file connected to the PiUPS device.
+ * @param file_i2c I2C file connected to the PiUPS device.
  */
-void piups_printstats(int file);
+void piups_printstats(int file_i2c);
 
 
-
+/// Get the current voltage of the microprocessor VCC in mV
+/* Function to get the current VCC voltage as read by
+ * the ADC.
+ * @param file_i2c I2C file connected to the PiUPS device
+ * @param vcc pointer to return value of vcc
+ * @return 0 on success
+ */
+int piups_getvcc(int file_i2c, int *vcc);
 
 
 
