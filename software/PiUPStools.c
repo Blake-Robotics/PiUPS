@@ -10,7 +10,7 @@ void piups_printstats(int file_i2c)
   
   if (read_i2c_reg(file_i2c, PIUPS_STATUS, &status) == 0)
   {
-    printf("Read Status as as 0x%x. \n", vcc);
+    printf("Read Status as as 0x%x. \n", status);
   }
   else
   {
@@ -32,7 +32,7 @@ void piups_printstats(int file_i2c)
 	
   if (read_i2c_reg(file_i2c, PIUPS_VBATT, &vbat) == 0)
   {
-    printf("Read VCC as %d mV. \n", vbat);
+    printf("Read VBatt as %d mV. \n", vbat);
   }
   else
   {
@@ -72,13 +72,59 @@ void piups_printstats(int file_i2c)
     printf("Failed to read VAUX2 \n");
   }
 
+  PiUPSBattery bat_status;
+  PiUPSPower pwr_src, rail_src;
+  if (piups_getstatus(file_i2c, &bat_status, &pwr_src, &rail_src) == 0)
+  {
+    printf("Read Status as: \n");
+    printf(" + Battery Status:\n");
+    if (bat_status & PiUPSBatteryLow) printf("    + Low Battery\n"); 
+    if (bat_status & PiUPSBatteryGood) printf("    + Good Battery\n");
+    if (bat_status & PiUPSBatteryChg) printf("    + Charging Battery\n");
+    
+    printf(" + Power Source:\n");
+    if (pwr_src & PiUPSPowerBatt) printf("    + Battery\n");
+    if (pwr_src & PiUPSPowerAUX1) printf("    + AUX1\n");
+    if (pwr_src & PiUPSPowerAUX2) printf("    + AUX2\n");
+    
+    printf(" + Rail Source:\n");
+    if (rail_src & PiUPSPowerBatt) printf("    + Battery\n");
+    if (rail_src & PiUPSPowerAUX1) printf("    + AUX1\n");
+    if (rail_src & PiUPSPowerAUX2) printf("    + AUX2\n");
+  }
+  else
+  {
+    printf("Failed to read Status \n");
+  }
+
+
   return 0;
 }
 
 
-int piups_getvcc(int file_i2c, int *vcc)
+int piups_getvcc(int file_i2c, uint16_t *vcc)
 {
-
+  
   return read_i2c_reg(file_i2c, PIUPS_VCC, vcc);
+
+}
+
+ 
+int piups_getstatus(int file_i2c, PiUPSBattery* bat_status, PiUPSPower* pwr_src, PiUPSPower* rail_src)
+{
+  int rval;
+  uint16_t read_val;
+  
+  rval = read_i2c_reg(file_i2c, PIUPS_STATUS, &read_val);
+  
+  // convert values if successful:
+  if (rval == 0)
+  {
+    *bat_status = read_val & 0xF;
+    *pwr_src = (read_val >> 4) & 0xF;
+    *rail_src = (read_val >> 8) & 0xF;
+  }
+
+  return rval;
 
 }
