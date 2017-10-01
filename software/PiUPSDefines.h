@@ -1,20 +1,38 @@
 #ifndef PiUPSDefines_h
 #define PiUPSDefines_h
+/** \file
+ *  \brief  Common definitions for the PiUPS system
+ *  A set of common definitions which are shared between
+ *  the firmware and software sides of the PiUPS system.
+ */
 
 
-
+/// The status of the Battery in the PiUPS system
+/** Flags used to indicate the current status of the battery
+ *  in the PiUPS system.
+ */
 typedef enum PiUPSBattery
 {
+    /// Low battery flag
     PiUPSBatteryLow  = 0x1,
+    /// Good battery flag
     PiUPSBatteryGood = 0x2,
+    /// Battery charging flag
     PiUPSBatteryChg  = 0x4,
 } PiUPSBattery;
 
 
+/// The differnt power sources in the PiUPS system
+/** Flags used to indicate a current power source in
+ *  the system.
+ */
 typedef enum PiUPSPower
-{
+{   
+    /// Running on battery flag
     PiUPSPowerBatt = 0x1,
+    /// Running from AUX1 flag
     PiUPSPowerAUX1 = 0x2,
+    /// Running from AUX2 flag
     PiUPSPowerAUX2 = 0x4
 } PiUPSPower;
 

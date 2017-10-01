@@ -36,7 +36,6 @@ int piups_getvcc(int file_i2c, uint16_t *vcc);
  * @param pwr_rail CUrrent power source for the output rail
  * @return 0 on success
  */
-
 int piups_getstatus(int file_i2c, PiUPSBattery* bat_status, PiUPSPower* pwr_src, PiUPSPower* rail_src);
 
 #endif
