@@ -4,6 +4,46 @@
 #include <unistd.h>
 #include "PiUPSDefines.h"
 
+//////////////////////////////////////////////////////////////////////////
+// Functions to handle setting/getting of voltage conversion parameters.
+int piups_set_vbattconv(int file_i2c, uint16_t vbattconv)
+{
+  return write_i2c_reg(file_i2c, PIUPS_VBATT_CONV, vbattconv);
+}
+int piups_get_vbattconv(int file_i2c, uint16_t *vbattconv)
+{
+  return read_i2c_reg(file_i2c, PIUPS_VBATT_CONV, vbattconv);
+}
+
+int piups_set_vrailconv(int file_i2c, uint16_t vrailconv)
+{
+  return write_i2c_reg(file_i2c, PIUPS_VRAIL_CONV, vrailconv);
+}
+int piups_get_vrailconv(int file_i2c, uint16_t *vrailconv)
+{
+  return read_i2c_reg(file_i2c, PIUPS_VRAIL_CONV, vrailconv);
+}
+
+int piups_set_vaux1conv(int file_i2c, uint16_t vaux1conv)
+{
+  return write_i2c_reg(file_i2c, PIUPS_VAUX1_CONV, vaux1conv);
+}
+int piups_get_vaux1conv(int file_i2c, uint16_t *vaux1conv)
+{
+  return read_i2c_reg(file_i2c, PIUPS_VAUX1_CONV, vaux1conv);
+}
+
+int piups_set_vaux2conv(int file_i2c, uint16_t vaux2conv)
+{
+  return write_i2c_reg(file_i2c, PIUPS_VAUX2_CONV, vaux2conv);
+}
+int piups_get_vaux2conv(int file_i2c, uint16_t *vaux2conv)
+{
+  return read_i2c_reg(file_i2c, PIUPS_VAUX2_CONV, vaux2conv);
+}
+
+
+/////////////////////////////////////////////////////////////////////////
 void piups_printstats(int file_i2c)
 {
   uint16_t vcc, vbat, vrail, vaux1, vaux2, status; 

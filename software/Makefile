@@ -3,7 +3,7 @@ CFLAGS = -std=gnu99 -Wall
 OBJ = i2ctools.o PiUPStools.o
 
 
-all:    i2ctest PiUPSStatus
+all:    i2ctest PiUPSStatus PiUPSConfigure
 
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
@@ -14,6 +14,9 @@ i2ctest: $(OBJ) i2ctest.o
 PiUPSStatus: $(OBJ) PiUPSStatus.o
 	gcc -o $@ $^ $(CFLAGS)
 
+PiUPSConfigure: $(OBJ) PiUPSConfigure.o
+	gcc -o $@ $^ $(CFLAGS)
+
 clean:
-	rm *.o i2ctest PiUPSStatus
+	rm *.o i2ctest PiUPSStatus PiUPSConfigure
 

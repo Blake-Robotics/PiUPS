@@ -18,7 +18,7 @@ int open_i2c_dev(int *file_i2c, char* filename, uint8_t i2c_addr)
   // open the file:
   if ((*file_i2c = open(filename, O_RDWR)) < 0)
   {
-    printf("Failed to open the i2c bus");
+    printf("Failed to open the i2c bus\n");
     return -1;
   }
  

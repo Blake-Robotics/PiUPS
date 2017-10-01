@@ -10,6 +10,84 @@
 #include "i2ctools.h"
 #include "PiUPSDefines.h"
 
+/// Function to set the battery voltage conversion constant
+/** Function to set the battery converstion constant, used to 
+ * convert from the ADC read voltage to the real battery voltage.
+ * @param file_i2c I2C file connected to the PiUPS device.
+ * @param vbattconv the battery conversion constant
+ * @return 0 on success
+ */
+int piups_set_vbattconv(int file_i2c, uint16_t vbattconv);
+
+/// Function to get the battery voltage conversion constant
+/** Function to get the battery converstion constant, used to 
+ * convert from the ADC read voltage to the real battery voltage.
+ * @param file_i2c I2C file connected to the PiUPS device.
+ * @param vbattconv the retrived battery conversion constant
+ * @return 0 on success
+ */
+int piups_get_vbattconv(int file_i2c, uint16_t *vbattconv);
+
+/// Function to set the rail voltage conversion constant
+/** Function to set the rail converstion constant, used to 
+ * convert from the ADC read voltage to the real rail voltage.
+ * @param file_i2c I2C file connected to the PiUPS device.
+ * @param vbattconv the battery conversion constant
+ * @return 0 on success
+ */
+int piups_set_vrailconv(int file_i2c, uint16_t vrailconst);
+
+/// Function to get the rail voltage conversion constant
+/** Function to get the rail converstion constant, used to 
+ * convert from the ADC read voltage to the real rail voltage.
+ * @param file_i2c I2C file connected to the PiUPS device.
+ * @param vbattconv the retrived battery conversion constant
+ * @return 0 on success
+ */
+int piups_get_vrailconv(int file_i2c, uint16_t *vrailconv);
+
+/// Function to set the aux1 voltage conversion constant
+/** Function to set the aux1 converstion constant, used to 
+ * convert from the ADC read voltage to the real aux1 voltage.
+ * @param file_i2c I2C file connected to the PiUPS device.
+ * @param vbattconv the battery conversion constant
+ * @return 0 on success
+ */
+int piups_set_vaux1conv(int file_i2c, uint16_t vaux1const);
+
+/// Function to get the aux1 voltage conversion constant
+/** Function to get the aux1 converstion constant, used to 
+ * convert from the ADC read voltage to the real aux1 voltage.
+ * @param file_i2c I2C file connected to the PiUPS device.
+ * @param vbattconv the retrived battery conversion constant
+ * @return 0 on success
+ */
+int piups_get_vaux1conv(int file_i2c, uint16_t *vaux1conv);
+
+/// Function to set the aux2 voltage conversion constant
+/** Function to set the aux2 converstion constant, used to 
+ * convert from the ADC read voltage to the real aux2 voltage.
+ * @param file_i2c I2C file connected to the PiUPS device.
+ * @param vbattconv the battery conversion constant
+ * @return 0 on success
+ */
+int piups_set_vaux2conv(int file_i2c, uint16_t vaux2const);
+
+/// Function to get the aux2 voltage conversion constant
+/** Function to get the aux2 converstion constant, used to 
+ * convert from the ADC read voltage to the real aux2 voltage.
+ * @param file_i2c I2C file connected to the PiUPS device.
+ * @param vbattconv the retrived battery conversion constant
+ * @return 0 on success
+ */
+int piups_get_vaux2conv(int file_i2c, uint16_t *vaux2conv);
+
+
+
+
+
+
+
 /// Print the current status of the ups system:
 /** Function to print the current status of the ups system to screen
  * @param file_i2c I2C file connected to the PiUPS device.
