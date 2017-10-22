@@ -24,6 +24,7 @@
 #define EEPROM_VRAIL_CONV 0x12
 #define EEPROM_VAUX1_CONV 0x14
 #define EEPROM_VAUX2_CONV 0x16
+#define EEPROM_V5V_CONV 0x18
 
 // Battery low safety points:
 #define EEPROM_VBATT_LOWDIS 0x20

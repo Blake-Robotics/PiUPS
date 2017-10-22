@@ -1,38 +1,20 @@
 #ifndef PiUPSDefines_h
 #define PiUPSDefines_h
-/** \file
- *  \brief  Common definitions for the PiUPS system
- *  A set of common definitions which are shared between
- *  the firmware and software sides of the PiUPS system.
- */
 
 
-/// The status of the Battery in the PiUPS system
-/** Flags used to indicate the current status of the battery
- *  in the PiUPS system.
- */
+
 typedef enum PiUPSBattery
 {
-    /// Low battery flag
     PiUPSBatteryLow  = 0x1,
-    /// Good battery flag
     PiUPSBatteryGood = 0x2,
-    /// Battery charging flag
     PiUPSBatteryChg  = 0x4,
 } PiUPSBattery;
 
 
-/// The differnt power sources in the PiUPS system
-/** Flags used to indicate a current power source in
- *  the system.
- */
 typedef enum PiUPSPower
-{   
-    /// Running on battery flag
+{
     PiUPSPowerBatt = 0x1,
-    /// Running from AUX1 flag
     PiUPSPowerAUX1 = 0x2,
-    /// Running from AUX2 flag
     PiUPSPowerAUX2 = 0x4
 } PiUPSPower;
 
@@ -43,10 +25,12 @@ typedef enum PiUPSADCState
     ADCInit = 0x1,
     ADCInitWait = 0x2,
     ADCVccWait = 0x3,
-    ADCVbatWait = 0x4,
-    ADCVrailWait = 0x5,
-    ADCVauxlWait = 0x6,
-    ADCVaux2Wait = 0x7,
+    ADCVbatInit = 0x4,
+    ADCVbatWait = 0x5,
+    ADCVrailWait = 0x6,
+    ADCVauxlWait = 0x7,
+    ADCVaux2Wait = 0x8,
+    ADCV5VWait = 0x9,
     ADCConvComplete = 0xF0,
     ADCDisable = 0xFC,
     ADCERR = 0xFF
@@ -72,12 +56,14 @@ typedef enum PiUPSADCState
 #define PIUPS_VRAIL 0x24
 #define PIUPS_VAUX1 0x26
 #define PIUPS_VAUX2 0x28
+#define PIUPS_V5V 0x2A
 
 // Conversion factors:
 #define PIUPS_VBATT_CONV 0x50
 #define PIUPS_VRAIL_CONV 0x52
 #define PIUPS_VAUX1_CONV 0x54
 #define PIUPS_VAUX2_CONV 0x56
+#define PIUPS_V5V_CONV 0x58
 
 // Voltages for constraining safe
 // battery voltages:

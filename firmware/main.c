@@ -59,6 +59,7 @@ uint16_t voltage_bat;
 uint16_t voltage_rail;
 uint16_t voltage_aux1;
 uint16_t voltage_aux2;
+uint16_t voltage_5v;
 
 // Rail divisions..
 //uint16_t div_bat = 4880;
@@ -146,7 +147,16 @@ void ADCStateHandler(void)
       {
         voltage_vcc = (((uint32_t)1100*1024)/ ADC);
         ADMUX = (1 << MUX0); // Set the mux to ADC1
-        ADCSRA |= (1 << ADSC);
+        ADCWaitTime = CurrentTime() + 4E3; // Set next state to wait 4,000 clock cycles.
+        CurrentADCState = ADCVbatInit;
+      }
+      break;
+      
+    // Wait for conversion, then store Vbat
+    case ADCVbatInit:
+      if ( CurrentTime() > ADCWaitTime)
+      {
+        ADCSRA |= (1 << ADSC); // Start conversion
         CurrentADCState = ADCVbatWait;
       }
       break;
@@ -186,7 +196,7 @@ void ADCStateHandler(void)
         voltage_aux1 = ((uint32_t)voltage_vcc*ADC/1024)*
                         read_eeprom_word(EEPROM_VAUX1_CONV)/1000;
         
-        ADMUX = (1 << MUX2); // Set the mux to ADC4
+        ADMUX = (1 << MUX2) |  (1 << MUX0); // Set the mux to ADC5
         ADCSRA |= (1 << ADSC);
         CurrentADCState = ADCVaux2Wait;
       }
@@ -198,6 +208,18 @@ void ADCStateHandler(void)
       {
         voltage_aux2 = ((uint32_t)voltage_vcc*ADC/1024)*
                         read_eeprom_word(EEPROM_VAUX2_CONV)/1000;
+        ADMUX = (1 << MUX2) |  (1 << MUX1)  |  (1 << MUX0); // Set the mux to ADC7
+        ADCSRA |= (1 << ADSC);
+        CurrentADCState = ADCV5VWait;
+      }
+      break;
+      
+    // Wait for conversion, then store V5V
+    case ADCV5VWait:
+      if ( !(ADCSRA & (1 << ADSC) ) )
+      {
+        voltage_5v = ((uint32_t)voltage_vcc*ADC/1024)*
+                        read_eeprom_word(EEPROM_V5V_CONV)/1000;
         CurrentADCState = ADCConvComplete;
       }
       break;
@@ -311,7 +333,7 @@ uint32_t CurrentTime(void)
 
 // Handle requests for data from the I2C bus:
 void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
-				uint8_t *output_buffer_length, uint8_t *output_buffer)
+				       uint8_t *output_buffer_length, uint8_t *output_buffer)
 {
   uint16_t temp;
 
@@ -359,6 +381,10 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
       case PIUPS_VAUX2:
         temp = voltage_aux2;
         break;
+        
+      case PIUPS_V5V:
+        temp = voltage_5v;
+        break;
       
       // Conversion Factors:
       case PIUPS_VBATT_CONV:
@@ -370,11 +396,15 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
         break;
         
       case PIUPS_VAUX1_CONV:
-        temp = read_eeprom_word (PIUPS_VAUX1_CONV);
+        temp = read_eeprom_word (EEPROM_VAUX1_CONV);
         break;
         
       case PIUPS_VAUX2_CONV:
-        temp = read_eeprom_word (PIUPS_VAUX2_CONV);
+        temp = read_eeprom_word (EEPROM_VAUX2_CONV);
+        break;
+        
+      case PIUPS_V5V_CONV:
+        temp = read_eeprom_word (EEPROM_V5V_CONV);
         break;
         
       case PIUPS_VBATT_LOWDIS:
@@ -431,6 +461,11 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
       case PIUPS_VAUX2_CONV:
         update_eeprom_byte (EEPROM_VAUX2_CONV+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_VAUX2_CONV, input_buffer[2]);
+        break;
+        
+      case PIUPS_V5V_CONV:
+        update_eeprom_byte (EEPROM_V5V_CONV+1, input_buffer[1]);
+        update_eeprom_byte (EEPROM_V5V_CONV, input_buffer[2]);
         break;
         
       case PIUPS_VBATT_LOWDIS:
