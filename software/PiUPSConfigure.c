@@ -16,13 +16,14 @@ int main(void)
   const uint8_t i2c_addr = 0x13;
 
   // Parameters to read
-  uint16_t read_vbatt_conv, read_vrail_conv, read_vaux1_conv, read_vaux2_conv;
+  uint16_t read_vbatt_conv, read_vrail_conv, read_vaux1_conv, read_vaux2_conv, read_v5v_conv;
   
   // Parameters to set, set != 0 to set the parameter.
-  uint16_t set_vbatt_conv = 4880; // VBatt Conversion - 4880
+  uint16_t set_vbatt_conv = 0; // VBatt Conversion - 4880
   uint16_t set_vrail_conv = 0; // VRail Conversion - 4351
-  uint16_t set_vaux1_conv = 11000; // VAUX1 Conversion - 11000
-  uint16_t set_vaux2_conv = 11000; // VAUX2 Conversion - 11000
+  uint16_t set_vaux1_conv = 0; // VAUX1 Conversion - 11000
+  uint16_t set_vaux2_conv = 0; // VAUX2 Conversion - 11000
+  uint16_t set_v5v_conv = 11000;  // V5V conversion - 11000.
 
   // Open the I2C device:
   if (open_i2c_dev(&file_i2c, filename, i2c_addr) == 0)
@@ -82,8 +83,19 @@ int main(void)
     printf("  VAux2: Failed to read\n"); 
   }
   usleep (1000); 
+
+  if (piups_get_v5vconv(file_i2c, &read_v5v_conv) == 0)
+  {
+    printf("  V5v:   %i. \n", read_v5v_conv);
+  }
+  else
+  {
+    printf("  V5v:   Failed to read\n"); 
+  }
+  usleep (1000); 
   
   // Set new conversion constants
+  printf ("\n\n");
   printf ("==========================================================\n");
   printf ("            SETTING NEW CONVERSION CONSTANTS:             \n");
   printf ("==========================================================\n");
@@ -144,8 +156,24 @@ int main(void)
     printf("  VAUX2: Failed to write\n");
   }
   usleep (1000); 
+  
+  if (set_v5v_conv == 0)
+  {
+    printf("  V5V:   SKIP\n");
+  } 
+  else if(piups_set_v5vconv(file_i2c, set_v5v_conv) == 0)
+  {
+    printf("  V5V:   SET to %i\n", set_v5v_conv);
+  }
+  else
+  {
+    printf("  V5V:   Failed to write\n");
+  }
+  usleep (1000); 
+
 
   // Print current converstion constants:
+  printf ("\n\n");
   printf ("==========================================================\n");
   printf ("            READ NEW CONVERSION CONSTANTS:                \n");
   printf ("==========================================================\n");
@@ -190,7 +218,17 @@ int main(void)
   {
     printf("  VAux2: Failed to read\n"); 
   }
+  usleep (1000);  
+
+  if (piups_get_v5vconv(file_i2c, &read_v5v_conv) == 0)
+  {
+    printf("  V5v:   %i. \n", read_v5v_conv);
+  }
+  else
+  {
+    printf("  V5v:   Failed to read\n"); 
+  }
   usleep (1000); 
-  
+
   return 0;
 }
