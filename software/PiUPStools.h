@@ -82,6 +82,24 @@ int piups_set_vaux2conv(int file_i2c, uint16_t vaux2const);
  */
 int piups_get_vaux2conv(int file_i2c, uint16_t *vaux2conv);
 
+/// Function to set the 5v output rail voltage conversion constant
+/** Function to set the 5v output rail converstion constant, used to 
+ * convert from the ADC read voltage to the real output rail voltage.
+ * @param file_i2c I2C file connected to the PiUPS device.
+ * @param vbattconv the battery conversion constant
+ * @return 0 on success
+ */
+int piups_set_v5vconv(int file_i2c, uint16_t v5vconst);
+
+/// Function to get the 5v output rail voltage conversion constant
+/** Function to get the 5v output rail converstion constant, used to 
+ * convert from the ADC read voltage to the real 5v rail voltage.
+ * @param file_i2c I2C file connected to the PiUPS device.
+ * @param vbattconv the retrived battery conversion constant
+ * @return 0 on success
+ */
+int piups_get_v5vconv(int file_i2c, uint16_t *v5v2conv);
+
 
 
 

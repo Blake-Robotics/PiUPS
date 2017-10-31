@@ -42,11 +42,20 @@ int piups_get_vaux2conv(int file_i2c, uint16_t *vaux2conv)
   return read_i2c_reg(file_i2c, PIUPS_VAUX2_CONV, vaux2conv);
 }
 
+int piups_set_v5vconv(int file_i2c, uint16_t v5vconv)
+{
+  return write_i2c_reg(file_i2c, PIUPS_V5V_CONV, v5vconv);
+}
+int piups_get_v5vconv(int file_i2c, uint16_t *v5vconv)
+{
+  return read_i2c_reg(file_i2c, PIUPS_V5V_CONV, v5vconv);
+}
+
 
 /////////////////////////////////////////////////////////////////////////
 void piups_printstats(int file_i2c)
 {
-  uint16_t vcc, vbat, vrail, vaux1, vaux2, status; 
+  uint16_t vcc, vbat, vrail, vaux1, vaux2, v5v, status; 
   
   if (read_i2c_reg(file_i2c, PIUPS_STATUS, &status) == 0)
   {
@@ -57,7 +66,7 @@ void piups_printstats(int file_i2c)
     printf("Failed to read Status \n");
   }
 
-  usleep (1000);
+  usleep (5000);
 
   if (read_i2c_reg(file_i2c, PIUPS_VCC, &vcc) == 0)
   {
@@ -68,7 +77,19 @@ void piups_printstats(int file_i2c)
     printf("Failed to read VCC \n");
   }
 
-  usleep (1000);
+  usleep(5000); 
+ 
+  if (read_i2c_reg(file_i2c, PIUPS_V5V, &v5v) == 0)
+  {
+    printf("Read 5V output as %d mV. \n", v5v);
+  }
+  else
+  {
+    printf("Failed to read 5V output \n");
+  }
+
+
+  usleep (5000);
 	
   if (read_i2c_reg(file_i2c, PIUPS_VBATT, &vbat) == 0)
   {
@@ -79,7 +100,7 @@ void piups_printstats(int file_i2c)
     printf("Failed to read VBatt \n");
   }
 
-  usleep (1000);	
+  usleep (5000);	
 
   if (read_i2c_reg(file_i2c, PIUPS_VRAIL, &vrail) == 0)
   {
@@ -90,7 +111,7 @@ void piups_printstats(int file_i2c)
     printf("Failed to read VRail \n");
   }
 
-  usleep (1000);	
+  usleep (5000);	
   
   if (read_i2c_reg(file_i2c, PIUPS_VAUX1, &vaux1) == 0)
   {
@@ -101,7 +122,7 @@ void piups_printstats(int file_i2c)
     printf("Failed to read VAUX1 \n");
   }
   
-  usleep (1000);	
+  usleep (5000);	
   
   if (read_i2c_reg(file_i2c, PIUPS_VAUX2, &vaux2) == 0)
   {
