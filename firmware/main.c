@@ -90,6 +90,8 @@ int main (void)
     SetupIO();
     EnableBattMon();
     EnableCurrMon();
+    EnableCharge();
+    EnableAuxOut();
 
     // Put ADC into starting state:
     CurrentADCState = ADCInit;
@@ -240,8 +242,9 @@ void ADCStateHandler(void)
     case ADCVauxOWait:
       if ( !(ADCSRA & (1 << ADSC) ) )
       {
+        //TODO: Remove hack values:
         voltage_aout = ((uint32_t)voltage_vcc*ADC/1024)*
-                        read_eeprom_word(EEPROM_VAUX2_CONV)/1000;
+                        read_eeprom_word(EEPROM_VAUXO_CONV)/1000;
         ADMUX = ADCMUX_SCURR; // Set the mux to ADC7
         ADCSRA |= (1 << ADSC);
         CurrentADCState = ADCVauxCurrWait;
@@ -251,7 +254,9 @@ void ADCStateHandler(void)
     case ADCVauxCurrWait:
       if ( !(ADCSRA & (1 << ADSC) ) )
       {
-        current_rail = ((uint32_t)voltage_vcc*ADC/1024)*333;
+        // TODO: Remove hack values:
+        //current_rail = ADC;//((uint32_t)voltage_vcc*ADC/1024)*333;
+        current_rail = ((uint32_t)voltage_vcc*ADC*read_eeprom_word(EEPROM_IRAIL_CONV)/1024/1000);
         CurrentADCState = ADCConvComplete;
       }
       break;
