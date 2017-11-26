@@ -16,14 +16,18 @@ int main(void)
   const uint8_t i2c_addr = 0x13;
 
   // Parameters to read
-  uint16_t read_vbatt_conv, read_vrail_conv, read_vaux1_conv, read_vaux2_conv, read_v5v_conv;
+  uint16_t read_vbatt_conv, read_vrail_conv, read_vaux1_conv, read_vaux2_conv,
+           read_v5v_conv, read_vauxo_conv, read_irail_conv;
+  
   
   // Parameters to set, set != 0 to set the parameter.
-  uint16_t set_vbatt_conv = 0; // VBatt Conversion - 4880
-  uint16_t set_vrail_conv = 0; // VRail Conversion - 4351
-  uint16_t set_vaux1_conv = 0; // VAUX1 Conversion - 11000
-  uint16_t set_vaux2_conv = 0; // VAUX2 Conversion - 11000
-  uint16_t set_v5v_conv = 11000;  // V5V conversion - 11000.
+  uint16_t set_vbatt_conv = 11000; // VBatt Conversion - 11000
+  uint16_t set_vrail_conv = 11000; // VRail Conversion - 11000
+  uint16_t set_vaux1_conv = 11000; // VAUX1 Conversion - 11000
+  uint16_t set_vaux2_conv = 11000; // VAUX2 Conversion - 11000
+  uint16_t set_v5v_conv   = 11000; // V5V Conversion - 11000
+  uint16_t set_vauxo_conv = 11000; // VAUXOut Conversion - 11000 
+  uint16_t set_irail_conv = 3333;  // IRAIL conversion - 3333
 
   // Open the I2C device:
   if (open_i2c_dev(&file_i2c, filename, i2c_addr) == 0)
@@ -83,14 +87,35 @@ int main(void)
     printf("  VAux2: Failed to read\n"); 
   }
   usleep (1000); 
-
+  
   if (piups_get_v5vconv(file_i2c, &read_v5v_conv) == 0)
   {
-    printf("  V5v:   %i. \n", read_v5v_conv);
+    printf("  V 5V: %i. \n", read_v5v_conv);
   }
   else
   {
-    printf("  V5v:   Failed to read\n"); 
+    printf("  V 5V: Failed to read\n"); 
+  }
+  usleep (1000); 
+  
+  if (piups_get_vauxoconv(file_i2c, &read_vauxo_conv) == 0)
+  {
+    printf("  VAuxO: %i. \n", read_vauxo_conv);
+  }
+  else
+  {
+    printf("  VAuxO: Failed to read\n"); 
+  }
+  usleep (1000); 
+  
+
+  if (piups_get_irailconv(file_i2c, &read_irail_conv) == 0)
+  {
+    printf("  IRail: %i. \n", read_irail_conv);
+  }
+  else
+  {
+    printf("  IRail: Failed to read\n"); 
   }
   usleep (1000); 
   
@@ -156,21 +181,48 @@ int main(void)
     printf("  VAUX2: Failed to write\n");
   }
   usleep (1000); 
-  
+
   if (set_v5v_conv == 0)
   {
-    printf("  V5V:   SKIP\n");
+    printf("  V 5V: SKIP\n");
   } 
   else if(piups_set_v5vconv(file_i2c, set_v5v_conv) == 0)
   {
-    printf("  V5V:   SET to %i\n", set_v5v_conv);
+    printf("  V 5V: SET to %i\n", set_v5v_conv);
   }
   else
   {
-    printf("  V5V:   Failed to write\n");
+    printf("  VAUX2: Failed to write\n");
   }
   usleep (1000); 
 
+  if (set_vauxo_conv == 0)
+  {
+    printf("  VAUXO: SKIP\n");
+  } 
+  else if(piups_set_vauxoconv(file_i2c, set_vauxo_conv) == 0)
+  {
+    printf("  VAUXO: SET to %i\n", set_vauxo_conv);
+  }
+  else
+  {
+    printf("  VAUXO: Failed to write\n");
+  }
+  usleep (1000); 
+
+  if (set_irail_conv == 0)
+  {
+    printf("  IRAIL: SKIP\n");
+  } 
+  else if(piups_set_irailconv(file_i2c, set_irail_conv) == 0)
+  {
+    printf("  IRAIL: SET to %i\n", set_irail_conv);
+  }
+  else
+  {
+    printf("  IRAIL: Failed to write\n");
+  }
+  usleep (1000); 
 
   // Print current converstion constants:
   printf ("\n\n");
@@ -219,16 +271,36 @@ int main(void)
     printf("  VAux2: Failed to read\n"); 
   }
   usleep (1000);  
-
+  
   if (piups_get_v5vconv(file_i2c, &read_v5v_conv) == 0)
   {
-    printf("  V5v:   %i. \n", read_v5v_conv);
+    printf("  V 5V: %i. \n", read_v5v_conv);
   }
   else
   {
-    printf("  V5v:   Failed to read\n"); 
+    printf("  V 5V: Failed to read\n"); 
   }
   usleep (1000); 
+  if (piups_get_vauxoconv(file_i2c, &read_vauxo_conv) == 0)
+  {
+    printf("  VAuxO: %i. \n", read_vauxo_conv);
+  }
+  else
+  {
+    printf("  VAuxO: Failed to read\n"); 
+  }
+  usleep (1000); 
+  
 
+  if (piups_get_irailconv(file_i2c, &read_irail_conv) == 0)
+  {
+    printf("  IRail: %i. \n", read_irail_conv);
+  }
+  else
+  {
+    printf("  IRail: Failed to read\n"); 
+  }
+  usleep (1000); 
+  
   return 0;
 }

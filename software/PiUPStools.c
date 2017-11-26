@@ -51,11 +51,28 @@ int piups_get_v5vconv(int file_i2c, uint16_t *v5vconv)
   return read_i2c_reg(file_i2c, PIUPS_V5V_CONV, v5vconv);
 }
 
+int piups_set_vauxoconv(int file_i2c, uint16_t vaoconv)
+{
+  return write_i2c_reg(file_i2c, PIUPS_VAUXO_CONV, vaoconv);
+}
+int piups_get_vauxoconv(int file_i2c, uint16_t *vaoconv)
+{
+  return read_i2c_reg(file_i2c, PIUPS_VAUXO_CONV, vaoconv);
+}
+
+int piups_set_irailconv(int file_i2c, uint16_t irailconv)
+{
+  return write_i2c_reg(file_i2c, PIUPS_IRAIL_CONV, irailconv);
+}
+int piups_get_irailconv(int file_i2c, uint16_t *irailconv)
+{
+  return read_i2c_reg(file_i2c, PIUPS_IRAIL_CONV, irailconv);
+}
 
 /////////////////////////////////////////////////////////////////////////
 void piups_printstats(int file_i2c)
 {
-  uint16_t vcc, vbat, vrail, vaux1, vaux2, v5v, status; 
+  uint16_t vcc, vbat, vrail, vaux1, vaux2, v5v, vauxo, irail, status; 
   
   if (read_i2c_reg(file_i2c, PIUPS_STATUS, &status) == 0)
   {
@@ -131,6 +148,24 @@ void piups_printstats(int file_i2c)
   else
   { 
     printf("Failed to read VAUX2 \n");
+  }
+
+  if (read_i2c_reg(file_i2c, PIUPS_VAUXO, &vauxo) == 0)
+  {
+    printf("Read VAUXOut as %d mV. \n", vauxo);
+  }
+  else
+  { 
+    printf("Failed to read VAUXOut \n");
+  } 
+
+  if (read_i2c_reg(file_i2c, PIUPS_IRAIL, &irail) == 0)
+  {
+    printf("Read IRAIL as %d mA. \n", irail);
+  }
+  else
+  { 
+    printf("Failed to read IRAIL \n");
   }
 
   PiUPSBattery bat_status;

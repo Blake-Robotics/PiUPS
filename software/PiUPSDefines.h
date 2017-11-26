@@ -31,6 +31,8 @@ typedef enum PiUPSADCState
     ADCVauxlWait = 0x7,
     ADCVaux2Wait = 0x8,
     ADCV5VWait = 0x9,
+    ADCVauxOWait = 0x10,
+    ADCVauxCurrWait = 0x11,
     ADCConvComplete = 0xF0,
     ADCDisable = 0xFC,
     ADCERR = 0xFF
@@ -56,7 +58,9 @@ typedef enum PiUPSADCState
 #define PIUPS_VRAIL 0x24
 #define PIUPS_VAUX1 0x26
 #define PIUPS_VAUX2 0x28
-#define PIUPS_V5V 0x2A
+#define PIUPS_V5V   0x2A
+#define PIUPS_VAUXO 0x2C
+#define PIUPS_IRAIL 0x2E
 
 // Conversion factors:
 #define PIUPS_VBATT_CONV 0x50
@@ -64,6 +68,8 @@ typedef enum PiUPSADCState
 #define PIUPS_VAUX1_CONV 0x54
 #define PIUPS_VAUX2_CONV 0x56
 #define PIUPS_V5V_CONV 0x58
+#define PIUPS_VAUXO_CONV 0x5A
+#define PIUPS_IRAIL_CONV 0x5C
 
 // Voltages for constraining safe
 // battery voltages:

@@ -98,11 +98,47 @@ int piups_set_v5vconv(int file_i2c, uint16_t v5vconst);
  * @param vbattconv the retrived battery conversion constant
  * @return 0 on success
  */
-int piups_get_v5vconv(int file_i2c, uint16_t *v5v2conv);
+int piups_get_v5vconv(int file_i2c, uint16_t *v5vconv);
 
 
+/// Function to set the aux output rail voltage conversion constant
+/** Function to set the aux output rail converstion constant, used to 
+ * convert from the ADC read voltage to the real output rail voltage.
+ * @param file_i2c I2C file connected to the PiUPS device.
+ * @param vaoconst the conversion constant
+ * @return 0 on success
+ */
+int piups_set_vauxoconv(int file_i2c, uint16_t vaoconst);
+
+/// Function to get the aux output rail voltage conversion constant
+/** Function to get the aux output rail converstion constant, used to 
+ * convert from the ADC read voltage to the real aux out rail voltage.
+ * @param file_i2c I2C file connected to the PiUPS device.
+ * @param vaoconv the retrived battery conversion constant
+ * @return 0 on success
+ */
+int piups_get_vauxoconv(int file_i2c, uint16_t *vaoconv);
 
 
+/// Function to set the rail current conversion constant
+/** Function to set the rail current converstion constant, used to 
+ * convert from the ADC read voltage to the real current.
+ *  = 1000 / (amplifier gain * shunt resistance)
+ * @param file_i2c I2C file connected to the PiUPS device.
+ * @param irailconv the current conversion constant
+ * @return 0 on success
+ */
+int piups_set_irailconv(int file_i2c, uint16_t irailconv);
+
+/// Function to get the rail current conversion constant
+/** Function to get the rail current converstion constant, used to 
+ * convert from the ADC read voltage to the real current.
+ *  = 1000 / (amplifier gain * shunt resistance)
+ * @param file_i2c I2C file connected to the PiUPS device.
+ * @param irailconv the retrived current conversion constant
+ * @return 0 on success
+ */
+int piups_get_irailconv(int file_i2c, uint16_t *irailconv);
 
 
 
