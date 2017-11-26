@@ -4,7 +4,8 @@
 #
 #
 
-MCU   = attiny84
+#MCU   = attiny84
+MCU   = attiny1634
 F_CPU = 8000000UL  
 TARGET = PiUPS
 

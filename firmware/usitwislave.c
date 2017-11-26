@@ -58,42 +58,42 @@ static uint16_t	idle_call_count;
 
 static void set_sda_to_input(void)
 {
-	DDR_USI &= ~_BV(PORT_USI_SDA);
+	DDR_SDA_USI &= ~_BV(PORT_USI_SDA);
 }
 
 static void set_sda_to_output(void)
 {
-	DDR_USI |= _BV(PORT_USI_SDA);
+	DDR_SDA_USI |= _BV(PORT_USI_SDA);
 }
 
 static inline void set_scl_to_input(void)
 {
-	DDR_USI &= ~_BV(PORT_USI_SCL);
+	DDR_SCL_USI &= ~_BV(PORT_USI_SCL);
 }
 
 static inline void set_scl_to_output(void)
 {
-	DDR_USI |= _BV(PORT_USI_SCL);
+	DDR_SCL_USI |= _BV(PORT_USI_SCL);
 }
 
 static inline void set_sda_low(void)
 {
-	PORT_USI &= ~_BV(PORT_USI_SDA);
+	PORT_SDA_USI &= ~_BV(PORT_USI_SDA);
 }
 
 static inline void set_sda_high(void)
 {
-	PORT_USI |= _BV(PORT_USI_SDA);
+	PORT_SDA_USI |= _BV(PORT_USI_SDA);
 }
 
 static inline void set_scl_low(void)
 {
-	PORT_USI &= ~_BV(PORT_USI_SCL);
+	PORT_SCL_USI &= ~_BV(PORT_USI_SCL);
 }
 
 static inline void set_scl_high(void)
 {
-	PORT_USI |= _BV(PORT_USI_SCL);
+	PORT_SCL_USI |= _BV(PORT_USI_SCL);
 }
 
 static inline void twi_reset_state(void)
@@ -155,8 +155,8 @@ ISR(USI_START_vect)
 	// condition as in Application Note AVR312 because the stop condition Flag is
 	// going to be set from the last TWI sequence
 
-	while(!(PIN_USI & _BV(PIN_USI_SDA)) &&
-			(PIN_USI & _BV(PIN_USI_SCL)))
+	while(!(PIN_SDA_USI & _BV(PIN_USI_SDA)) &&
+			(PIN_SCL_USI & _BV(PIN_USI_SCL)))
 
 	// possible combinations
 	//	sda = low	scl = low		break	start condition
@@ -164,7 +164,7 @@ ISR(USI_START_vect)
 	//	sda = high	scl = low		break	stop condition
 	//	sda = high	scl = high		break	stop condition
 
-	if((PIN_USI & _BV(PIN_USI_SDA)))	// stop condition
+	if((PIN_SDA_USI & _BV(PIN_USI_SDA)))	// stop condition
 	{
 		twi_reset();
 

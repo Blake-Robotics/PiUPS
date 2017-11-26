@@ -28,6 +28,7 @@
 
 // Project includes
 #include "PiUPSDefines.h"
+#include "PiUPSHWDefines.h"
 #include "eeprom.h"
 
 /*****************************************************************************
@@ -60,6 +61,8 @@ uint16_t voltage_rail;
 uint16_t voltage_aux1;
 uint16_t voltage_aux2;
 uint16_t voltage_5v;
+uint16_t voltage_aout;
+uint16_t current_rail; // Current drawn by rail in mA.
 
 // Rail divisions..
 //uint16_t div_bat = 4880;
@@ -80,14 +83,22 @@ int main (void)
 {
     
     // Setup port B for output:
-    DDRB |= (1 << PB0); 
-    PORTB |= (1 << PB0);
+    //DDRB |= (1 << PB0); 
+    //PORTB |= (1 << PB0);
+    
+    // Setup IO ports with default values:
+    SetupIO();
+    EnableBattMon();
+    EnableCurrMon();
 
     // Put ADC into starting state:
     CurrentADCState = ADCInit;
     
     // Enable Global Timekeeping:
     EnableTimer1();
+    
+    // Startup green led:
+    LEDGreenOn();
     
     //ANACOMP_Enable();
     
@@ -125,7 +136,7 @@ void ADCStateHandler(void)
     // Start the ADC initilisaton sequence:
     case ADCInit:
       ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1); // enable adc with clk/64 (8MHz -> 125kHz)
-      ADMUX = (1 << MUX5) | (1 << MUX0); // Set mux to 1.1 bandgap reference.
+      ADMUX = ADCMUX_REF; // Set mux to 1.1 bandgap reference.
       ADCWaitTime = CurrentTime() + 32E3; // Set next state to wait 32,000 clock cycles.
       CurrentADCState = ADCInitWait;
       break;
@@ -146,7 +157,7 @@ void ADCStateHandler(void)
       if ( !(ADCSRA & (1 << ADSC) ) )
       {
         voltage_vcc = (((uint32_t)1100*1024)/ ADC);
-        ADMUX = (1 << MUX0); // Set the mux to ADC1
+        ADMUX = ADCMUX_SBATT; // Set the mux to ADC1
         ADCWaitTime = CurrentTime() + 4E3; // Set next state to wait 4,000 clock cycles.
         CurrentADCState = ADCVbatInit;
       }
@@ -170,7 +181,7 @@ void ADCStateHandler(void)
         voltage_bat = ((uint32_t)voltage_vcc*ADC/1024)*
                        read_eeprom_word(EEPROM_VBATT_CONV)/1000;
         
-        ADMUX = (1 << MUX1); // Set the mux to ADC2
+        ADMUX = ADCMUX_SPBUS; // Set the mux to ADC2
         ADCSRA |= (1 << ADSC);
         CurrentADCState = ADCVrailWait;
       }
@@ -183,7 +194,7 @@ void ADCStateHandler(void)
         voltage_rail = ((uint32_t)voltage_vcc*ADC/1024)*
                         read_eeprom_word(EEPROM_VRAIL_CONV)/1000;
         
-        ADMUX = (1 << MUX1) | (1 << MUX0); // Set the mux to ADC3
+        ADMUX = ADCMUX_SAUX1; // Set the mux to ADC3
         ADCSRA |= (1 << ADSC);
         CurrentADCState = ADCVauxlWait;
       }
@@ -196,7 +207,7 @@ void ADCStateHandler(void)
         voltage_aux1 = ((uint32_t)voltage_vcc*ADC/1024)*
                         read_eeprom_word(EEPROM_VAUX1_CONV)/1000;
         
-        ADMUX = (1 << MUX2) |  (1 << MUX0); // Set the mux to ADC5
+        ADMUX = ADCMUX_SAUX2; // Set the mux to ADC5
         ADCSRA |= (1 << ADSC);
         CurrentADCState = ADCVaux2Wait;
       }
@@ -208,7 +219,7 @@ void ADCStateHandler(void)
       {
         voltage_aux2 = ((uint32_t)voltage_vcc*ADC/1024)*
                         read_eeprom_word(EEPROM_VAUX2_CONV)/1000;
-        ADMUX = (1 << MUX2) |  (1 << MUX1)  |  (1 << MUX0); // Set the mux to ADC7
+        ADMUX = ADCMUX_S5V; // Set the mux to ADC7
         ADCSRA |= (1 << ADSC);
         CurrentADCState = ADCV5VWait;
       }
@@ -219,14 +230,35 @@ void ADCStateHandler(void)
       if ( !(ADCSRA & (1 << ADSC) ) )
       {
         voltage_5v = ((uint32_t)voltage_vcc*ADC/1024)*
-                        read_eeprom_word(EEPROM_V5V_CONV)/1000;
+                       read_eeprom_word(EEPROM_V5V_CONV)/1000;
+        ADMUX = ADCMUX_SAUXO; // Set the mux to ADC7
+        ADCSRA |= (1 << ADSC);
+        CurrentADCState = ADCVauxOWait;
+      }
+      break;
+      
+    case ADCVauxOWait:
+      if ( !(ADCSRA & (1 << ADSC) ) )
+      {
+        voltage_aout = ((uint32_t)voltage_vcc*ADC/1024)*
+                        read_eeprom_word(EEPROM_VAUX2_CONV)/1000;
+        ADMUX = ADCMUX_SCURR; // Set the mux to ADC7
+        ADCSRA |= (1 << ADSC);
+        CurrentADCState = ADCVauxCurrWait;
+      }
+      break;
+      
+    case ADCVauxCurrWait:
+      if ( !(ADCSRA & (1 << ADSC) ) )
+      {
+        current_rail = ((uint32_t)voltage_vcc*ADC/1024)*333;
         CurrentADCState = ADCConvComplete;
       }
       break;
       
     case ADCConvComplete:
-      UpdateStatus();
-      CurrentADCState = ADCInit;
+        UpdateStatus();
+        CurrentADCState = ADCInit;
       break;
       
     case ADCDisable:
@@ -312,7 +344,7 @@ void EnableTimer1(void)
     // Setup 16-bit timer to keep track of internal time:
     TCCR1A = 0x0;       // Normal operation
     TCCR1B = (1<<CS10); // Set prescaler to 1.
-    TIMSK1 |= (1<<TOIE1); // Interrupt on overflow
+    TIMSK |= (1<<TOIE1); // Interrupt on overflow
     TCNT1 = 0;
 }
 
@@ -385,6 +417,14 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
       case PIUPS_V5V:
         temp = voltage_5v;
         break;
+        
+      case PIUPS_VAUXO:
+        temp = voltage_aout;
+        break;
+        
+      case PIUPS_IRAIL:
+        temp = current_rail;
+        break;
       
       // Conversion Factors:
       case PIUPS_VBATT_CONV:
@@ -405,6 +445,14 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
         
       case PIUPS_V5V_CONV:
         temp = read_eeprom_word (EEPROM_V5V_CONV);
+        break;
+        
+      case PIUPS_VAUXO_CONV:
+        temp = read_eeprom_word (EEPROM_VAUXO_CONV);
+        break;
+      
+      case PIUPS_IRAIL_CONV:
+        temp = read_eeprom_word (EEPROM_IRAIL_CONV);
         break;
         
       case PIUPS_VBATT_LOWDIS:
@@ -468,6 +516,16 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
         update_eeprom_byte (EEPROM_V5V_CONV, input_buffer[2]);
         break;
         
+      case PIUPS_VAUXO_CONV:
+        update_eeprom_byte (EEPROM_VAUXO_CONV+1, input_buffer[1]);
+        update_eeprom_byte (EEPROM_VAUXO_CONV, input_buffer[2]);
+        break;
+      
+      case PIUPS_IRAIL_CONV:
+        update_eeprom_byte (EEPROM_IRAIL_CONV+1, input_buffer[1]);
+        update_eeprom_byte (EEPROM_IRAIL_CONV, input_buffer[2]);
+        break;
+        
       case PIUPS_VBATT_LOWDIS:
         update_eeprom_byte (EEPROM_VBATT_LOWDIS+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_VBATT_LOWDIS, input_buffer[2]);
@@ -512,10 +570,10 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
 // quickly to make sure I2C is accessible.
 void i2c_idle_callback(void)
 {
-    if ((ACSR & (1<<ACO)) == 0)
+    /*if ((ACSR & (1<<ACO)) == 0)
     {
         PORTB &= ~(1 << PB0); // PD0 goes low
-    }
+    }*/
 
     ADCStateHandler ();
 }
@@ -523,7 +581,7 @@ void i2c_idle_callback(void)
 /*****************************************************************************
  * Comparator operation
  *****************************************************************************/
-
+/*
 void ANACOMP_Enable(void)
 { 
     ACSR = (1 << ACBG) | (1 << ACIE) | (1 << ACIS1) | (1 << ACIS0);
@@ -543,5 +601,5 @@ ISR(ANA_COMP_vect)
         RailSource = PiUPSPowerBatt;
     }
 }
-
+*/
 

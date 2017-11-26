@@ -18,6 +18,20 @@ Derived from works by:
 #	define USI_OVERFLOW_VECTOR	USI_OVERFLOW_vect
 #endif
 
+#if		defined(__AVR_ATtiny1634__)
+#	define DDR_SDA_USI			DDRB
+#	define PORT_SDA_USI			PORTB
+#	define PIN_SDA_USI			PINB
+#	define PORT_USI_SDA			PB1
+#	define PIN_USI_SDA			PINB1
+#   define DDR_SCL_USI          DDRC
+#   define PORT_SCL_USI         PORTC
+#   define PIN_SCL_USI          PINC
+#	define PORT_USI_SCL			PC1
+#	define PIN_USI_SCL			PINC1
+#	define USI_OVERFLOW_VECTOR	USI_OVERFLOW_vect
+#endif
+
 #if		defined(__AVR_ATtiny24__) | \
 		defined(__AVR_ATtiny44__) | \
 		defined(__AVR_ATtiny84__)
@@ -107,4 +121,13 @@ Derived from works by:
 #	define PIN_USI_SDA			PINE5
 #	define PIN_USI_SCL			PINE4
 #	define USI_OVERFLOW_VECTOR	USI_OVERFLOW_vect
+#endif
+
+#ifndef DDR_SCL_USI
+#	define DDR_SDA_USI			DDR_USI
+#	define PORT_SDA_USI			PORT_USI
+#	define PIN_SDA_USI			PIN_USI
+#   define DDR_SCL_USI          DDR_USI
+#	define PORT_USI_SDA			PORT_USI
+#	define PIN_USI_SDA			PIN_USI
 #endif
