@@ -55,6 +55,7 @@ void ANACOMP_Enable(void);
 void ANACOMP_Disable(void);
 
 // ADC converted voltages:
+const uint16_t voltage_vcc_const = 3300;
 uint16_t voltage_vcc;
 uint16_t voltage_bat;
 uint16_t voltage_rail;
@@ -69,10 +70,12 @@ uint16_t current_rail; // Current drawn by rail in mA.
 //uint16_t div_rail = 4880;
 
 // Power status / control:
-volatile PiUPSBattery BatteryStatus = 0x0;
+volatile PiUPSBattery BatteryStatus = PiUPSBatteryLow;
 volatile PiUPSPower PowerSource = 0x0;
 volatile PiUPSPower RailSource = 0x0;
 void UpdateStatus(void);
+void UpdateBatteryStatus(void);
+void UpdateBatteryState(void);
 bool PowerSave = false;
 
 
@@ -139,7 +142,7 @@ void ADCStateHandler(void)
     case ADCInit:
       ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1); // enable adc with clk/64 (8MHz -> 125kHz)
       ADMUX = ADCMUX_REF; // Set mux to 1.1 bandgap reference.
-      ADCWaitTime = CurrentTime() + 32E3; // Set next state to wait 32,000 clock cycles.
+      ADCWaitTime = CurrentTime() + 10E3; // Set next state to wait 10,000 clock cycles (1.25ms).
       CurrentADCState = ADCInitWait;
       break;
     
@@ -160,7 +163,7 @@ void ADCStateHandler(void)
       {
         voltage_vcc = (((uint32_t)1100*1024)/ ADC);
         ADMUX = ADCMUX_SBATT; // Set the mux to ADC1
-        ADCWaitTime = CurrentTime() + 4E3; // Set next state to wait 4,000 clock cycles.
+        ADCWaitTime = CurrentTime() + 1E3; // Set next state to wait 1,000 clock cycles.
         CurrentADCState = ADCVbatInit;
       }
       break;
@@ -180,7 +183,7 @@ void ADCStateHandler(void)
       {
         // Convert the ADC value to a voltage in mV, using
         // the stored value for the resistor divider.
-        voltage_bat = ((uint32_t)voltage_vcc*ADC/1024)*
+        voltage_bat = ((uint32_t)voltage_vcc_const*ADC/1024)*
                        read_eeprom_word(EEPROM_VBATT_CONV)/1000;
         
         ADMUX = ADCMUX_SPBUS; // Set the mux to ADC2
@@ -193,7 +196,7 @@ void ADCStateHandler(void)
     case ADCVrailWait:
       if ( !(ADCSRA & (1 << ADSC) ) )
       {
-        voltage_rail = ((uint32_t)voltage_vcc*ADC/1024)*
+        voltage_rail = ((uint32_t)voltage_vcc_const*ADC/1024)*
                         read_eeprom_word(EEPROM_VRAIL_CONV)/1000;
         
         ADMUX = ADCMUX_SAUX1; // Set the mux to ADC3
@@ -206,7 +209,7 @@ void ADCStateHandler(void)
     case ADCVauxlWait:
       if ( !(ADCSRA & (1 << ADSC) ) )
       {
-        voltage_aux1 = ((uint32_t)voltage_vcc*ADC/1024)*
+        voltage_aux1 = ((uint32_t)voltage_vcc_const*ADC/1024)*
                         read_eeprom_word(EEPROM_VAUX1_CONV)/1000;
         
         ADMUX = ADCMUX_SAUX2; // Set the mux to ADC5
@@ -219,7 +222,7 @@ void ADCStateHandler(void)
     case ADCVaux2Wait:
       if ( !(ADCSRA & (1 << ADSC) ) )
       {
-        voltage_aux2 = ((uint32_t)voltage_vcc*ADC/1024)*
+        voltage_aux2 = ((uint32_t)voltage_vcc_const*ADC/1024)*
                         read_eeprom_word(EEPROM_VAUX2_CONV)/1000;
         ADMUX = ADCMUX_S5V; // Set the mux to ADC7
         ADCSRA |= (1 << ADSC);
@@ -231,7 +234,7 @@ void ADCStateHandler(void)
     case ADCV5VWait:
       if ( !(ADCSRA & (1 << ADSC) ) )
       {
-        voltage_5v = ((uint32_t)voltage_vcc*ADC/1024)*
+        voltage_5v = ((uint32_t)voltage_vcc_const*ADC/1024)*
                        read_eeprom_word(EEPROM_V5V_CONV)/1000;
         ADMUX = ADCMUX_SAUXO; // Set the mux to ADC7
         ADCSRA |= (1 << ADSC);
@@ -242,8 +245,7 @@ void ADCStateHandler(void)
     case ADCVauxOWait:
       if ( !(ADCSRA & (1 << ADSC) ) )
       {
-        //TODO: Remove hack values:
-        voltage_aout = ((uint32_t)voltage_vcc*ADC/1024)*
+        voltage_aout = ((uint32_t)voltage_vcc_const*ADC/1024)*
                         read_eeprom_word(EEPROM_VAUXO_CONV)/1000;
         ADMUX = ADCMUX_SCURR; // Set the mux to ADC7
         ADCSRA |= (1 << ADSC);
@@ -256,7 +258,8 @@ void ADCStateHandler(void)
       {
         // TODO: Remove hack values:
         //current_rail = ADC;//((uint32_t)voltage_vcc*ADC/1024)*333;
-        current_rail = ((uint32_t)voltage_vcc*ADC*read_eeprom_word(EEPROM_IRAIL_CONV)/1024/1000);
+        current_rail = ((uint32_t)voltage_vcc_const*ADC*3333/1024/1000);
+        //current_rail = ((uint32_t)voltage_vcc_const*ADC*read_eeprom_word(EEPROM_IRAIL_CONV)/1024/1000);
         CurrentADCState = ADCConvComplete;
       }
       break;
@@ -276,34 +279,80 @@ void ADCStateHandler(void)
 /*****************************************************************************
  * Power state and system management:
  *****************************************************************************/
-void UpdateStatus(void)
+void UpdateBatteryStatus(void)
 {
-  
+  // Battery Status:
   // Check the battery level, with hysterisis:
+  // TODO: Seperate out 'LOW' to mean critical
+  //        Good -> Power for all.
+  //        Low  -> Critical low power, switching into low power mode
+  //        Neither good/low -> Not enough to activate PI, but enough
+  //        to keep the cpu running.
   if (BatteryStatus & PiUPSBatteryGood)
   {
-    if (voltage_bat < read_eeprom_word (EEPROM_VBATT_LOWDIS))
+    if (voltage_bat < /*read_eeprom_word (EEPROM_VBATT_LOWDIS)*/ 6000)
     {
-      BatteryStatus &= !PiUPSBatteryGood;
-      BatteryStatus |= PiUPSBatteryLow;
+      BatteryStatus &= ~((uint8_t)PiUPSBatteryGood);
+      BatteryStatus |= ((uint8_t)PiUPSBatteryLow);
+      LEDRedOn();
     }
   }
   else
   {
-    if (voltage_bat < read_eeprom_word (EEPROM_VBATT_LOWEN))
+    if (voltage_bat > /*read_eeprom_word (EEPROM_VBATT_LOWEN)*/ 6500)
     {
-      BatteryStatus |= PiUPSBatteryGood;
-      BatteryStatus &= !PiUPSBatteryLow;
+      BatteryStatus |= ((uint8_t)PiUPSBatteryGood);
+      BatteryStatus &= ~((uint8_t)PiUPSBatteryLow);
+      LEDRedOff();
     }
-  
+  }
+}
+
+void UpdateBatteryState(void)
+{
+  // Charging Condition
+  if (  ( RailSource & (PiUPSPowerAUX1 | PiUPSPowerAUX2) ) // External Power
+     && (voltage_rail > voltage_bat + 1000)) // At least 1V of excess drop...
+  {
+    EnableCharge();
+    BatteryStatus |= PiUPSBatteryChg;
+    
+    DisableBatt();
+    BatteryStatus &= ~((uint8_t)PiUSPBatteryEn);
   }
   
+  // Power rail condition
+  else if (BatteryStatus & PiUPSBatteryGood)
+  {
+    DisableCharge();
+    BatteryStatus &= ~((uint8_t)PiUPSBatteryChg);
+    
+    EnableBatt();
+    BatteryStatus |= PiUSPBatteryEn;
+  }
+  
+  // No power to provide condition:
+  else
+  {
+    DisableCharge();
+    BatteryStatus &= ~((uint8_t)PiUPSBatteryChg);
+    
+    DisableBatt();
+    BatteryStatus &= ~((uint8_t)PiUSPBatteryEn);
+  }
+}
+ 
+void UpdateStatus(void)
+{
+  UpdateBatteryStatus();
+  UpdateBatteryState();
+
   
   // Determine the rail source voltage:
   if (voltage_aux2 > voltage_aux1)
   {
     // Check battery output is on and powering rail:
-    if ((PORTB & PB0) && (voltage_aux2 < voltage_rail))
+    if ((BatteryStatus & PiUSPBatteryEn) && (voltage_aux2 < voltage_rail))
     {
       RailSource = PiUPSPowerBatt;
     }
@@ -315,7 +364,7 @@ void UpdateStatus(void)
   else
   {
     // Check battery output is on and powering rail:
-    if ((PORTB & PB0) && (voltage_aux2 < voltage_rail))
+    if ((BatteryStatus & PiUSPBatteryEn) && (voltage_aux2 < voltage_rail))
     {
       RailSource = PiUPSPowerBatt;
     }
@@ -326,10 +375,12 @@ void UpdateStatus(void)
   
   }
   
+  UpdateBatteryState();
+  
   // If voltage rail is above the first power regulator
   // then the device is being powered from the rail, and
   // is powered from the highest supply:
-  if ( voltage_rail > 5600 )
+  if ( voltage_rail > voltage_bat )
   {
     PowerSource = RailSource;
   }

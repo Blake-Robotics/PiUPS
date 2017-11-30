@@ -8,6 +8,7 @@ typedef enum PiUPSBattery
     PiUPSBatteryLow  = 0x1,
     PiUPSBatteryGood = 0x2,
     PiUPSBatteryChg  = 0x4,
+    PiUSPBatteryEn   = 0x8,
 } PiUPSBattery;
 
 
@@ -46,6 +47,7 @@ typedef enum PiUPSADCState
 //#define PIUPS_SETI2C 0x13
 
 //Status and control:
+// TODO: Fix data widths..
 //  [3:0] - PiUPSBattery: Battery Status
 //  [7:4] - PiUPSPower: Rail power source
 //  [11:8] - PiUPSPower: Power supply
