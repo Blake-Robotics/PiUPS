@@ -12,15 +12,17 @@ int main(void)
 
   // I2C interface setup:
   int file_i2c;
-  const char *filename = (char*)"/dev/i2c-1";
+  char *filename = (char*)"/dev/i2c-1";
   const uint8_t i2c_addr = 0x13;
 
   // Parameters to read
   uint16_t read_vbatt_conv, read_vrail_conv, read_vaux1_conv, read_vaux2_conv,
-           read_v5v_conv, read_vauxo_conv, read_irail_conv;
-  
+            read_v5v_conv, read_vauxo_conv, read_irail_conv, read_vbattlowdis,
+            read_vbattlowen, read_vraillowsw, read_vrailhighsw, read_vrailcompen,
+            read_raililim, read_chargexcess, read_maxcharge;
   
   // Parameters to set, set != 0 to set the parameter.
+  // Conversion constants:
   uint16_t set_vbatt_conv = 11000; // VBatt Conversion - 11000
   uint16_t set_vrail_conv = 11000; // VRail Conversion - 11000
   uint16_t set_vaux1_conv = 11000; // VAUX1 Conversion - 11000
@@ -28,6 +30,16 @@ int main(void)
   uint16_t set_v5v_conv   = 11000; // V5V Conversion - 11000
   uint16_t set_vauxo_conv = 11000; // VAUXOut Conversion - 11000 
   uint16_t set_irail_conv = 3333;  // IRAIL conversion - 3333
+  // Configuration constants:
+  uint16_t set_vbattlowdis = 2900*3; // LiFePo4 : 2800mV
+  uint16_t set_vbattlowen =  set_vbattlowdis ? set_vbattlowdis + 300 : 0;
+  uint16_t set_vraillowsw =  0;
+  uint16_t set_vrailhighsw =  0;
+  uint16_t set_vrailcompen =  0;
+  uint16_t set_raililim =  8000;
+  uint16_t set_chargexcess =  1000;
+  uint16_t set_maxcharge =  3500*3; // LiFePo4 : 3600mV
+  
 
   // Open the I2C device:
   if (open_i2c_dev(&file_i2c, filename, i2c_addr) == 0)
@@ -118,6 +130,86 @@ int main(void)
     printf("  IRail: Failed to read\n"); 
   }
   usleep (1000); 
+  
+  if (read_i2c_reg(file_i2c, PiUPSVBattLowDis, &read_vbattlowdis) == 0)
+  {
+    printf("  VBattLowDis: %i. \n", read_vbattlowdis);
+  }
+  else
+  {
+    printf("  VBattLowDis: Failed to read\n"); 
+  }
+  usleep (1000);
+  
+  if (read_i2c_reg(file_i2c, PiUPSVBattLowEn, &read_vbattlowen) == 0)
+  {
+    printf("  VBattLowEn: %i. \n", read_vbattlowen);
+  }
+  else
+  {
+    printf("  VBattLowEn: Failed to read\n"); 
+  }
+  usleep (1000);
+  
+  if (read_i2c_reg(file_i2c, PiUPSRailLowSw, &read_vraillowsw) == 0)
+  {
+    printf("  RailLowSw: %i. \n", read_vraillowsw);
+  }
+  else
+  {
+    printf("  RailLowSw: Failed to read\n"); 
+  }
+  usleep (1000); 
+  
+  if (read_i2c_reg(file_i2c, PiUPSRailHighSw, &read_vrailhighsw) == 0)
+  {
+    printf("  RailHighSw: %i. \n", read_vrailhighsw);
+  }
+  else
+  {
+    printf("  RailHighSw: Failed to read\n"); 
+  }
+  usleep (1000);
+  
+  if (read_i2c_reg(file_i2c, PiUPSRailCompEn, &read_vrailcompen) == 0)
+  {
+    printf("  RailCompEn: %i. \n", read_vrailcompen);
+  }
+  else
+  {
+    printf("  RailCompEn: Failed to read\n"); 
+  }
+  usleep (1000); 
+  
+  if (read_i2c_reg(file_i2c, PiUPSIRailLim, &read_raililim) == 0)
+  {
+    printf("  IRailLim: %i. \n", read_raililim);
+  }
+  else
+  {
+    printf("  IRailLim: Failed to read\n"); 
+  }
+  usleep (1000);
+  
+  if (read_i2c_reg(file_i2c, PiUPSChargeExcess, &read_chargexcess) == 0)
+  {
+    printf("  ChargeExcess: %i. \n", read_chargexcess);
+  }
+  else
+  {
+    printf("  ChargeExcess: Failed to read\n"); 
+  }
+  usleep (1000);
+  
+  if (read_i2c_reg(file_i2c, PiUPSChargeLimit, &read_maxcharge) == 0)
+  {
+    printf("  ChargeLimit: %i. \n", read_chargexcess);
+  }
+  else
+  {
+    printf("  ChargeLimit: Failed to read\n"); 
+  }
+  usleep (1000);
   
   // Set new conversion constants
   printf ("\n\n");
@@ -222,7 +314,121 @@ int main(void)
   {
     printf("  IRAIL: Failed to write\n");
   }
+  usleep (1000);
+  
+  if (set_vbattlowdis == 0)
+  {
+    printf("  VBattLowDis: SKIP\n");
+  } 
+  else if(write_i2c_reg(file_i2c, PiUPSVBattLowDis, set_vbattlowdis) == 0)
+  {
+    printf("  VBattLowDis: SET to %i\n", set_vbattlowdis);
+  }
+  else
+  {
+    printf("  VBattLowDis: Failed to write\n");
+  }
+  usleep (1000);
+  
+  if (set_vbattlowen == 0)
+  {
+    printf("  VBattLowEn: SKIP\n");
+  } 
+  else if(write_i2c_reg(file_i2c, PiUPSVBattLowEn, set_vbattlowen) == 0)
+  {
+    printf("  VBattLowEn: SET to %i\n", set_vbattlowen);
+  }
+  else
+  {
+    printf("  VBattLowEn: Failed to write\n");
+  }
+  usleep (1000);
+  
+  if (set_vraillowsw == 0)
+  {
+    printf("  RailLowSw: SKIP\n");
+  } 
+  else if(write_i2c_reg(file_i2c, PiUPSRailLowSw, set_vraillowsw) == 0)
+  {
+    printf("  RailLowSw: SET to %i\n", set_vraillowsw);
+  }
+  else
+  {
+    printf("  RailLowSw: Failed to write\n");
+  }
   usleep (1000); 
+  
+  if (set_vrailhighsw == 0)
+  {
+    printf("  RailHighSw: SKIP\n");
+  } 
+  else if(write_i2c_reg(file_i2c, PiUPSRailHighSw, set_vrailhighsw) == 0)
+  {
+    printf("  RailHighSw: SET to %i\n", set_vrailhighsw);
+  }
+  else
+  {
+    printf("  RailHighSw: Failed to write\n");
+  }
+  usleep (1000);
+  
+  if (set_vrailcompen == 0)
+  {
+    printf("  RailCompEn: SKIP\n");
+  } 
+  else if(write_i2c_reg(file_i2c, PiUPSRailCompEn, set_vrailcompen) == 0)
+  {
+    printf("  RailCompEn: SET to %i\n", set_vrailcompen);
+  }
+  else
+  {
+    printf("  RailCompEn: Failed to write\n");
+  }
+  usleep (1000); 
+  
+  if (set_raililim == 0)
+  {
+    printf("  IRailLim: SKIP\n");
+  } 
+  else if(write_i2c_reg(file_i2c, PiUPSIRailLim, set_raililim) == 0)
+  {
+    printf("  IRailLim: SET to %i\n", set_raililim);
+  }
+  else
+  {
+    printf("  IRailLim: Failed to write\n");
+  }
+  usleep (1000);
+  
+  if (set_chargexcess == 0)
+  {
+    printf("  ChargeExcess: SKIP\n");
+  } 
+  else if(write_i2c_reg(file_i2c, PiUPSChargeExcess, set_chargexcess) == 0)
+  {
+    printf("  ChargeExcess: SET to %i\n", set_chargexcess);
+  }
+  else
+  {
+    printf("  ChargeExcess: Failed to write\n");
+  }
+  usleep (1000);
+  
+  if (set_maxcharge == 0)
+  {
+    printf("  ChargeLimit: SKIP\n");
+  } 
+  else if(write_i2c_reg(file_i2c, PiUPSChargeLimit, set_maxcharge) == 0)
+  {
+    printf("  ChargeLimit: SET to %i\n", set_maxcharge);
+  }
+  else
+  {
+    printf("  ChargeLimit: Failed to write\n");
+  }
+  usleep (1000);
+  
+  
 
   // Print current converstion constants:
   printf ("\n\n");
@@ -301,6 +507,86 @@ int main(void)
     printf("  IRail: Failed to read\n"); 
   }
   usleep (1000); 
+  
+  if (read_i2c_reg(file_i2c, PiUPSVBattLowDis, &read_vbattlowdis) == 0)
+  {
+    printf("  VBattLowDis: %i. \n", read_vbattlowdis);
+  }
+  else
+  {
+    printf("  VBattLowDis: Failed to read\n"); 
+  }
+  usleep (1000);
+  
+  if (read_i2c_reg(file_i2c, PiUPSVBattLowEn, &read_vbattlowen) == 0)
+  {
+    printf("  VBattLowEn: %i. \n", read_vbattlowen);
+  }
+  else
+  {
+    printf("  VBattLowEn: Failed to read\n"); 
+  }
+  usleep (1000);
+  
+  if (read_i2c_reg(file_i2c, PiUPSRailLowSw, &read_vraillowsw) == 0)
+  {
+    printf("  RailLowSw: %i. \n", read_vraillowsw);
+  }
+  else
+  {
+    printf("  RailLowSw: Failed to read\n"); 
+  }
+  usleep (1000); 
+  
+  if (read_i2c_reg(file_i2c, PiUPSRailHighSw, &read_vrailhighsw) == 0)
+  {
+    printf("  RailHighSw: %i. \n", read_vrailhighsw);
+  }
+  else
+  {
+    printf("  RailHighSw: Failed to read\n"); 
+  }
+  usleep (1000);
+  
+  if (read_i2c_reg(file_i2c, PiUPSRailCompEn, &read_vrailcompen) == 0)
+  {
+    printf("  RailCompEn: %i. \n", read_vrailcompen);
+  }
+  else
+  {
+    printf("  RailCompEn: Failed to read\n"); 
+  }
+  usleep (1000); 
+  
+  if (read_i2c_reg(file_i2c, PiUPSIRailLim, &read_raililim) == 0)
+  {
+    printf("  IRailLim: %i. \n", read_raililim);
+  }
+  else
+  {
+    printf("  IRailLim: Failed to read\n"); 
+  }
+  usleep (1000);
+  
+  if (read_i2c_reg(file_i2c, PiUPSChargeExcess, &read_chargexcess) == 0)
+  {
+    printf("  ChargeExcess: %i. \n", read_chargexcess);
+  }
+  else
+  {
+    printf("  ChargeExcess: Failed to read\n"); 
+  }
+  usleep (1000);
+  
+  if (read_i2c_reg(file_i2c, PiUPSChargeLimit, &read_maxcharge) == 0)
+  {
+    printf("  ChargeLimit: %i. \n", read_chargexcess);
+  }
+  else
+  {
+    printf("  ChargeLimit: Failed to read\n"); 
+  }
+  usleep (1000);
   
   return 0;
 }
