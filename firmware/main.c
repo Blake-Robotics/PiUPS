@@ -439,96 +439,107 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
         return;
         
       // Current Status:
-      case PIUPS_STATUS:
+      case PiUPSStatus:
         temp = BatteryStatus | 
                (PowerSource << 4) |
                (RailSource  << 8);
         break;
                
-      case PIUPS_ADCSTATE:
+      case PiUPSADCStatus:
         temp = CurrentADCState;
         break;
         
       // Voltage Reading:
-      case PIUPS_VCC:
+      case PiUPSVcc:
         temp = voltage_vcc;
         break;
         
-      case PIUPS_VBATT:
+      case PiUPSVBatt:
         temp = voltage_bat;
         break;
         
-      case PIUPS_VRAIL:
+      case PiUPSVRail:
         temp = voltage_rail;
         break;
         
-      case PIUPS_VAUX1:
+      case PiUPSVAux1:
         temp = voltage_aux1;
         break;
         
-      case PIUPS_VAUX2:
+      case PiUPSVAux2:
         temp = voltage_aux2;
         break;
         
-      case PIUPS_V5V:
+      case PiUPSV5V:
         temp = voltage_5v;
         break;
         
-      case PIUPS_VAUXO:
+      case PiUPSVAuxO:
         temp = voltage_aout;
         break;
         
-      case PIUPS_IRAIL:
+      case PiUPSIRail:
         temp = current_rail;
         break;
       
       // Conversion Factors:
-      case PIUPS_VBATT_CONV:
+      case PiUPSVBattConv:
         temp = read_eeprom_word (EEPROM_VBATT_CONV);
         break;
         
-      case PIUPS_VRAIL_CONV:
+      case PiUPSVRailConv:
         temp = read_eeprom_word (EEPROM_VRAIL_CONV);
         break;
         
-      case PIUPS_VAUX1_CONV:
+      case PiUPSVAux1Conv:
         temp = read_eeprom_word (EEPROM_VAUX1_CONV);
         break;
         
-      case PIUPS_VAUX2_CONV:
+      case PiUPSVAux2Conv:
         temp = read_eeprom_word (EEPROM_VAUX2_CONV);
         break;
         
-      case PIUPS_V5V_CONV:
+      case PiUPSV5VConv:
         temp = read_eeprom_word (EEPROM_V5V_CONV);
         break;
         
-      case PIUPS_VAUXO_CONV:
+      case PiUPSVAuxOConv:
         temp = read_eeprom_word (EEPROM_VAUXO_CONV);
         break;
       
-      case PIUPS_IRAIL_CONV:
+      case PiUPSIRailConv:
         temp = read_eeprom_word (EEPROM_IRAIL_CONV);
         break;
         
-      case PIUPS_VBATT_LOWDIS:
+      case PiUPSVBattLowDis:
         temp = read_eeprom_word (EEPROM_VBATT_LOWDIS);
         break;
         
-      case PIUPS_VBATT_LOWEN:
+      case PiUPSVBattLowEn:
         temp = read_eeprom_word (EEPROM_VBATT_LOWEN);
         break;
-        
-      case PIUPS_RAIL_LOWSW:
+          
+      case PiUPSRailLowSw:
         temp = read_eeprom_word (EEPROM_RAIL_LOWSW);
         break;
         
-      case PIUPS_RAIL_HIGHSW:
+      case PiUPSRailHighSw:
         temp = read_eeprom_word (EEPROM_RAIL_HIGHSW);
         break;
         
-      case PIUPS_RAIL_COMPEN:
+      case PiUPSRailCompEn:
         temp = read_eeprom_word (EEPROM_RAIL_COMPEN);
+        break;
+        
+      case PiUPSIRailLim:
+        temp = read_eeprom_word (EEPROM_IRAILLIM);
+        break;
+        
+      case PiUPSChargeExcess:
+        temp = read_eeprom_word (EEPROM_CHGEXCESS);
+        break;
+       
+        
     }
     
     output_buffer[0] = (temp >> 8);
@@ -547,65 +558,76 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
       default:
         break;
         
-      case PIUPS_VBATT_CONV:
+      case PiUPSVBattConv:
         update_eeprom_byte (EEPROM_VBATT_CONV+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_VBATT_CONV, input_buffer[2]);
         break;
       
-      case PIUPS_VRAIL_CONV:
+      case PiUPSVRailConv:
         update_eeprom_byte (EEPROM_VRAIL_CONV+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_VRAIL_CONV, input_buffer[2]);
         break;
         
-      case PIUPS_VAUX1_CONV:
+      case PiUPSVAux1Conv:
         update_eeprom_byte (EEPROM_VAUX1_CONV+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_VAUX1_CONV, input_buffer[2]);
         break;
         
-      case PIUPS_VAUX2_CONV:
+      case PiUPSVAux2Conv:
         update_eeprom_byte (EEPROM_VAUX2_CONV+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_VAUX2_CONV, input_buffer[2]);
         break;
         
-      case PIUPS_V5V_CONV:
+      case PiUPSV5VConv:
         update_eeprom_byte (EEPROM_V5V_CONV+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_V5V_CONV, input_buffer[2]);
         break;
         
-      case PIUPS_VAUXO_CONV:
+      case PiUPSVAuxOConv:
         update_eeprom_byte (EEPROM_VAUXO_CONV+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_VAUXO_CONV, input_buffer[2]);
         break;
       
-      case PIUPS_IRAIL_CONV:
+      case PiUPSIRailConv:
         update_eeprom_byte (EEPROM_IRAIL_CONV+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_IRAIL_CONV, input_buffer[2]);
         break;
         
-      case PIUPS_VBATT_LOWDIS:
+      case PiUPSVBattLowDis:
         update_eeprom_byte (EEPROM_VBATT_LOWDIS+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_VBATT_LOWDIS, input_buffer[2]);
         break;
       
-      case PIUPS_VBATT_LOWEN:
+      case PiUPSVBattLowEn:
         update_eeprom_byte (EEPROM_VBATT_LOWEN+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_VBATT_LOWEN, input_buffer[2]);
         break;
-        
-      case PIUPS_RAIL_LOWSW:
+            
+      case PiUPSRailLowSw:
         update_eeprom_byte (EEPROM_RAIL_LOWSW+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_RAIL_LOWSW, input_buffer[2]);
         break;
         
-      case PIUPS_RAIL_HIGHSW:
+      case PiUPSRailHighSw:
         update_eeprom_byte (EEPROM_RAIL_HIGHSW+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_RAIL_HIGHSW, input_buffer[2]);
         break;
         
-      case PIUPS_RAIL_COMPEN:
+      case PiUPSRailCompEn:
         update_eeprom_byte (EEPROM_RAIL_COMPEN+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_RAIL_COMPEN, input_buffer[2]);
         break;
+        
+      case PiUPSIRailLim:
+        update_eeprom_byte (EEPROM_IRAILLIM+1, input_buffer[1]);
+        update_eeprom_byte (EEPROM_IRAILLIM, input_buffer[2]);
+        break;
+        
+      case PiUPSChargeExcess:
+        update_eeprom_byte (EEPROM_CHGEXCESS+1, input_buffer[1]);
+        update_eeprom_byte (EEPROM_CHGEXCESS, input_buffer[2]);
+        break;
+      
      
     }
     *output_buffer_length = 0;
