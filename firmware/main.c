@@ -76,6 +76,7 @@ volatile PiUPSPower RailSource = 0x0;
 void UpdateStatus(void);
 void UpdateBatteryStatus(void);
 void UpdateBatteryState(void);
+void UpdateLEDState(void);
 bool PowerSave = false;
 
 
@@ -93,8 +94,9 @@ int main (void)
     SetupIO();
     EnableBattMon();
     EnableCurrMon();
-    EnableCharge();
-    EnableAuxOut();
+    DisableBatt();
+    DisableCharge();
+    DisableAuxOut();
 
     // Put ADC into starting state:
     CurrentADCState = ADCInit;
@@ -102,8 +104,6 @@ int main (void)
     // Enable Global Timekeeping:
     EnableTimer1();
     
-    // Startup green led:
-    LEDGreenOn();
     
     //ANACOMP_Enable();
     
@@ -290,7 +290,7 @@ void UpdateBatteryStatus(void)
   //        to keep the cpu running.
   if (BatteryStatus & PiUPSBatteryGood)
   {
-    if (voltage_bat < /*read_eeprom_word (EEPROM_VBATT_LOWDIS)*/ 6000)
+    if (voltage_bat < read_eeprom_word (EEPROM_VBATT_LOWDIS))
     {
       BatteryStatus &= ~((uint8_t)PiUPSBatteryGood);
       BatteryStatus |= ((uint8_t)PiUPSBatteryLow);
@@ -299,7 +299,7 @@ void UpdateBatteryStatus(void)
   }
   else
   {
-    if (voltage_bat > /*read_eeprom_word (EEPROM_VBATT_LOWEN)*/ 6500)
+    if (voltage_bat > read_eeprom_word (EEPROM_VBATT_LOWEN))
     {
       BatteryStatus |= ((uint8_t)PiUPSBatteryGood);
       BatteryStatus &= ~((uint8_t)PiUPSBatteryLow);
@@ -311,13 +311,21 @@ void UpdateBatteryStatus(void)
 void UpdateBatteryState(void)
 {
   // Charging Condition
-  if (  ( RailSource & (PiUPSPowerAUX1 | PiUPSPowerAUX2) ) // External Power
-     && (voltage_rail > voltage_bat + 1000)) // At least 1V of excess drop...
+  // - Must be on external power
+  // - Must have atleast EEPROM_CHGEXCESS rail voltage above battery
+  // - Battery voltage must be below EEPROM_CHGMAX
+  // - TODO: Some hysterisis on the charge enable.
+  // - TODO: Periodic break to check battery is present
+  if (  (RailSource & (PiUPSPowerAUX1 | PiUPSPowerAUX2)) // External Power
+     && (voltage_rail > voltage_bat + read_eeprom_word (EEPROM_CHGEXCESS))
+     && (voltage_bat < read_eeprom_word (EEPROM_CHGMAX))) 
   {
     EnableCharge();
     BatteryStatus |= PiUPSBatteryChg;
     
-    DisableBatt();
+    // Enable the battery - This ensures it will be ready to switch over
+    // immediately in the event of a power outage, and trust in the diodes.
+    EnableBatt();
     BatteryStatus &= ~((uint8_t)PiUSPBatteryEn);
   }
   
@@ -352,7 +360,7 @@ void UpdateStatus(void)
   if (voltage_aux2 > voltage_aux1)
   {
     // Check battery output is on and powering rail:
-    if ((BatteryStatus & PiUSPBatteryEn) && (voltage_aux2 < voltage_rail))
+    if ((BatteryStatus & PiUSPBatteryEn) && (voltage_aux2 < voltage_bat))
     {
       RailSource = PiUPSPowerBatt;
     }
@@ -364,7 +372,7 @@ void UpdateStatus(void)
   else
   {
     // Check battery output is on and powering rail:
-    if ((BatteryStatus & PiUSPBatteryEn) && (voltage_aux2 < voltage_rail))
+    if ((BatteryStatus & PiUSPBatteryEn) && (voltage_aux1 < voltage_bat))
     {
       RailSource = PiUPSPowerBatt;
     }
@@ -388,9 +396,18 @@ void UpdateStatus(void)
   {
     RailSource = PiUPSPowerBatt;
   }
+  
+  UpdateLEDState();
 
 }
 
+void UpdateLEDState(void)
+{
+  if (RailSource & (PiUPSPowerAUX1 | PiUPSPowerAUX2)) LEDGreenOn();
+  else if ((RailSource & PiUPSPowerBatt) && ((CurrentTime() >> 20) & 0x1)) LEDGreenOn();
+  else LEDGreenOff();
+  
+}
 
 /*****************************************************************************
  * Timer 1: Global Timekeeping 
@@ -538,7 +555,10 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
       case PiUPSChargeExcess:
         temp = read_eeprom_word (EEPROM_CHGEXCESS);
         break;
-       
+        
+       case PiUPSChargeLimit:
+        temp = read_eeprom_word (EEPROM_CHGMAX);
+        break;
         
     }
     
@@ -627,7 +647,11 @@ void i2c_recv_callback(uint8_t input_buffer_length, const uint8_t *input_buffer,
         update_eeprom_byte (EEPROM_CHGEXCESS+1, input_buffer[1]);
         update_eeprom_byte (EEPROM_CHGEXCESS, input_buffer[2]);
         break;
-      
+        
+      case PiUPSChargeLimit:
+        update_eeprom_byte (EEPROM_CHGMAX+1, input_buffer[1]);
+        update_eeprom_byte (EEPROM_CHGMAX, input_buffer[2]);
+        break;
      
     }
     *output_buffer_length = 0;
