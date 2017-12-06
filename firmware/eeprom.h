@@ -36,6 +36,7 @@
 #define EEPROM_RAIL_COMPEN 0x28
 #define EEPROM_IRAILLIM 0x2A
 #define EEPROM_CHGEXCESS 0x2C
+#define EEPROM_CHGMAX 0x2E
 
 
 #endif

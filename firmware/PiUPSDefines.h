@@ -80,8 +80,9 @@ typedef enum PiUPSRegister
     PiUPSRailHighSw = 0x66,
     PiUPSRailCompEn = 0x68,
     
-    PiUPSIRailLim = 0x6A,    ///< Disable AuxO/Battery charging if the current here is exceeded
-    PiUPSChargeExcess = 0x6C ///< Excess voltage needed to enable the battery charging circuit
+    PiUPSIRailLim = 0x6A,     ///< Disable AuxO/Battery charging if the current here is exceeded
+    PiUPSChargeExcess = 0x6C, ///< Excess voltage needed to enable the battery charging circuit
+    PiUPSChargeLimit = 0x6E   ///< Maximum voltage the battery should be charged to
 } PiUPSRegister;
 
 
