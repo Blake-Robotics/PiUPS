@@ -193,14 +193,12 @@ void piups_printstats(int file_i2c)
     printf("Failed to read Status \n");
   }
 
-
-  return 0;
+  return;
 }
 
 
 int piups_getvcc(int file_i2c, uint16_t *vcc)
 {
-  
   return read_i2c_reg(file_i2c, PIUPS_VCC, vcc);
 
 }

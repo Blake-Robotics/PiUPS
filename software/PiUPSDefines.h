@@ -8,6 +8,7 @@ typedef enum PiUPSBattery
     PiUPSBatteryLow  = 0x1,
     PiUPSBatteryGood = 0x2,
     PiUPSBatteryChg  = 0x4,
+    PiUSPBatteryEn   = 0x8,
 } PiUPSBattery;
 
 
@@ -38,6 +39,52 @@ typedef enum PiUPSADCState
     ADCERR = 0xFF
 } PiUPSADCState;
 
+/// PiUPS Register map
+typedef enum PiUPSRegister
+{
+    // 0x00 - 0x0F: I2C config registers:
+    PiUPSReset = 0x0, ///< Reset (unused)
+    PiUPSUpdate =  0x1, ///< Update (unused)
+    PiUPSSave = 0x2, ///< Update (unused)
+    PiUPSSetI2C = 0x5,   ///< Set I2C addr (unused)
+
+    // 0x10 - 0x1F: System status/control registers
+    PiUPSStatus = 0x10,    ///< Current Status of the PiUPS system
+    PiUPSADCStatus = 0x18, ///< Current State of the ADC state machine
+
+    // 0x20 - 0x2F: Sensor status registers
+    PiUPSVcc = 0x20, ///< Vcc Voltage (mv)
+    PiUPSVBatt = 0x22, ///< Battery Voltage (mv)
+    PiUPSVRail = 0x24, ///< Rail Voltage (mv)
+    PiUPSVAux1 = 0x26, ///< Aux1 Voltage (mv)
+    PiUPSVAux2 = 0x28, ///< Aux2 Voltage (mv)
+    PiUPSV5V   = 0x2A, ///< 5V Output Voltage (mv)
+    PiUPSVAuxO = 0x2C, ///< AuxO Output Voltage (mv)
+    PiUPSIRail = 0x2E, ///< Rail Current (mA)
+    
+    // 0x50 - 0x5F Sensor conversion factors
+    PiUPSVBattConv = 0x50, ///< Conversion factor for VBatt * 1000
+    PiUPSVRailConv = 0x52, ///< Conversion factor for VRail * 1000
+    PiUPSVAux1Conv = 0x54, ///< Conversion factor for VAux1 * 1000
+    PiUPSVAux2Conv = 0x56, ///< Conversion fator for VAux2 * 1000
+    PiUPSV5VConv = 0x58,   ///< Conversion factor for V5V * 1000
+    PiUPSVAuxOConv = 0x5A, ///< Conversion factor for AuxO output * 1000
+    PiUPSIRailConv = 0x5C, ///< Conversion factor for Rail current * 1000
+
+    // 0x60 - Condiguration for safe switching voltages
+    PiUPSVBattLowDis = 0x60, ///< Disable battery use and switch MCU into powersave once this voltage is reached
+    PiUPSVBattLowEn = 0x62,  ///< Enable battery use and exit powersave once this voltage is reached
+
+    // Range for operating rail voltages
+    PiUPSRailLowSw = 0x64,
+    PiUPSRailHighSw = 0x66,
+    PiUPSRailCompEn = 0x68,
+    
+    PiUPSIRailLim = 0x6A,    ///< Disable AuxO/Battery charging if the current here is exceeded
+    PiUPSChargeExcess = 0x6C, ///< Excess voltage needed to enable the battery charging circuit
+    PiUPSChargeLimit = 0x6E   ///< Maximum voltage the battery should be charged to
+} PiUPSRegister;
+
 
 // Write commands (opcodes)
 //#define PIUPS_RESET 0x0
@@ -46,6 +93,7 @@ typedef enum PiUPSADCState
 //#define PIUPS_SETI2C 0x13
 
 //Status and control:
+// TODO: Fix data widths..
 //  [3:0] - PiUPSBattery: Battery Status
 //  [7:4] - PiUPSPower: Rail power source
 //  [11:8] - PiUPSPower: Power supply
