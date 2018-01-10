@@ -20,6 +20,7 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <avr/eeprom.h>
+#include <avr/sleep.h>
 #include <string.h>
 #include <stdbool.h>
 
@@ -76,7 +77,10 @@ volatile PiUPSPower RailSource = 0x0;
 void UpdateStatus(void);
 void UpdateBatteryStatus(void);
 void UpdateBatteryState(void);
+void UpdateAUXOState(void);
 void UpdateLEDState(void);
+
+void GotoSleep(void);
 bool PowerSave = false;
 
 
@@ -114,6 +118,52 @@ int main (void)
     // program.
     usi_twi_slave(0x13, 0, &i2c_recv_callback, &i2c_idle_callback);
 };
+
+/*****************************************************************************
+ * Sleep mode function - put the device into a low power sleep mode
+ *****************************************************************************/
+void GotoSleep(void)
+{
+  // Shudown peripherals:
+  ADCSRA &= ~(1 << ADEN);
+  DisableCurrMon();
+  DisableBattMon();
+  DisableBatt();
+  LEDRedOff();
+  LEDGreenOff();
+  
+  // Not using - WDT uses this, stop CPU clock!
+  // Set clock source to internal 32KHz Ossilator:
+  //while( ~CLKSR & (1<<OSCRDY)) 
+  //CLKSR = (CLKSR & 0xF0) | (1<<CKSEL2);
+  
+  // Configure & Enable
+  WDTCSR |= (1<<WDIE) | (1<<WDP3) | (1<<WDP0);
+  
+  // Go into sleep mode:
+  set_sleep_mode( SLEEP_MODE_PWR_DOWN );
+  sleep_enable();
+  sleep_mode();
+  sleep_disable(); 
+  
+  // Disable watchdog interrupt:
+  WDTCSR &= ~(1<<WDIE);
+
+  
+  // Recover clock speed - to 8MHz Ossilator.
+  //while( ~CLKSR & (1<<OSCRDY)) 
+  //CLKSR = (CLKSR & 0xF0) | (1<<CKSEL1);
+
+  // Enable peripherals:
+  EnableCurrMon();
+  EnableBattMon();
+  ADCSRA |= (1 << ADEN);
+}
+
+ISR(WDT_vect) {
+  __asm__("nop\n\t"); 
+}
+
 
 /*****************************************************************************
  * ADC Conversion handling:
@@ -266,6 +316,8 @@ void ADCStateHandler(void)
       
     case ADCConvComplete:
         UpdateStatus();
+        if ((BatteryStatus & PiUPSBatteryLow)
+            && (PowerSource & PiUPSPowerBatt)) GotoSleep();
         CurrentADCState = ADCInit;
       break;
       
@@ -310,17 +362,30 @@ void UpdateBatteryStatus(void)
 
 void UpdateBatteryState(void)
 {
+  const uint16_t chg_max = read_eeprom_word (EEPROM_CHGMAX);
+  
   // Charging Condition
   // - Must be on external power
   // - Must have atleast EEPROM_CHGEXCESS rail voltage above battery
   // - Battery voltage must be below EEPROM_CHGMAX
-  // - TODO: Some hysterisis on the charge enable.
-  // - TODO: Periodic break to check battery is present
-  if (  (RailSource & (PiUPSPowerAUX1 | PiUPSPowerAUX2)) // External Power
+  // - At lease some voltage in the battery
+  // - Current must be below IRAILLIM: safe current limit.
+  // - Some (300mV) hysterisis on the charge enable.
+  if (  (RailSource & (PiUPSPowerAUX1 | PiUPSPowerAUX2)) 
      && (voltage_rail > voltage_bat + read_eeprom_word (EEPROM_CHGEXCESS))
-     && (voltage_bat < read_eeprom_word (EEPROM_CHGMAX))) 
+     && (voltage_bat < chg_max)
+     && (voltage_bat > 2000)
+     && (current_rail < read_eeprom_word (EEPROM_IRAILLIM))
+     && ((BatteryStatus & PiUPSBatteryChg) || (voltage_bat < chg_max-300)))
   {
-    EnableCharge();
+  
+    // Periodically stop battery charging to test and ensure a battery is
+    // present.
+    if (((CurrentTime() >> 19) & 0x2FF) == 0x000) EnableCharge();
+    else DisableCharge();    
+    
+    // Still report the battery as charging, if no battery is present
+    // voltage will drop and this state will not be entered.
     BatteryStatus |= PiUPSBatteryChg;
     
     // Enable the battery - This ensures it will be ready to switch over
@@ -349,6 +414,20 @@ void UpdateBatteryState(void)
     BatteryStatus &= ~((uint8_t)PiUSPBatteryEn);
   }
 }
+
+// Update the auxilary output state:
+void UpdateAUXOState(void)
+{
+  if ( (RailSource & (PiUPSPowerAUX1 | PiUPSPowerAUX2)) ||
+       (BatteryStatus & PiUPSBatteryGood) )
+  {
+    EnableAuxOut();
+  }
+  else
+  {
+    DisableAuxOut();
+  }
+}
  
 void UpdateStatus(void)
 {
@@ -372,7 +451,7 @@ void UpdateStatus(void)
   else
   {
     // Check battery output is on and powering rail:
-    if ((BatteryStatus & PiUSPBatteryEn) && (voltage_aux1 < voltage_bat))
+    if ((voltage_aux1 < voltage_bat))
     {
       RailSource = PiUPSPowerBatt;
     }
@@ -397,6 +476,7 @@ void UpdateStatus(void)
     RailSource = PiUPSPowerBatt;
   }
   
+  UpdateAUXOState();
   UpdateLEDState();
 
 }
