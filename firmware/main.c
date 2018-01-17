@@ -381,8 +381,9 @@ void UpdateBatteryState(void)
   
     // Periodically stop battery charging to test and ensure a battery is
     // present.
-    if (((CurrentTime() >> 19) & 0x2FF) == 0x000) EnableCharge();
-    else DisableCharge();    
+    //if (((CurrentTime() >> 19) & 0x2FF) == 0x000) EnableCharge();
+    //else DisableCharge();
+    EnableCharge();
     
     // Still report the battery as charging, if no battery is present
     // voltage will drop and this state will not be entered.
@@ -391,7 +392,7 @@ void UpdateBatteryState(void)
     // Enable the battery - This ensures it will be ready to switch over
     // immediately in the event of a power outage, and trust in the diodes.
     EnableBatt();
-    BatteryStatus &= ~((uint8_t)PiUSPBatteryEn);
+    BatteryStatus |= PiUSPBatteryEn;
   }
   
   // Power rail condition
