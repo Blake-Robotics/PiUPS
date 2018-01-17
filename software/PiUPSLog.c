@@ -78,19 +78,19 @@ int main (int argc, char* argv[])
   while(go)
   {
     // Read all the vaulues over i2c, in the event of a persistent
-	// failure increment read_failures and stop further attempts to
-	// read registers.
-	read_failures = 0;
-	time(&time_now);
-	timeinfo_now = localtime(&time_now);
-	for (i=0; i<ouput_num; i++)
-	{ 
+    // failure increment read_failures and stop further attempts to
+    // read registers.
+    read_failures = 0;
+    time(&time_now);
+    timeinfo_now = localtime(&time_now);
+    for (i=0; i<ouput_num; i++)
+    { 
       if (read_retry(file_i2c, output_regs[i], &read_vals[i]) !=0)
 	  {
-	    read_failures++;
-		break;
-	  }
-	  usleep(sleep_time);
+        read_failures++;
+        break;
+      }
+      usleep(sleep_time);
     }
 	
 	// If all data was read correctly write the infomation to a fiu
@@ -100,6 +100,7 @@ int main (int argc, char* argv[])
 	  fprintf(file_log, "%s, %lu", time_str, (unsigned long) time_now );
 	  for (int i=0; i<ouput_num; i++) fprintf(file_log, ", %d",  read_vals[i]);
 	  fprintf(file_log, "\n");
+          fflush(file_log);
 	}
 	sleep(10);
   }
@@ -111,8 +112,8 @@ int read_retry(int file_i2c, uint8_t reg, uint16_t* result)
 {
   for (int i=max_retries; i>0; i--)
   {
-	if (read_i2c_reg(file_i2c, reg, result) == 0) return 0;
-	usleep(sleep_time);
+    if (read_i2c_reg(file_i2c, reg, result) == 0) return 0;
+    usleep(sleep_time);
   }
   return 1;
 }
